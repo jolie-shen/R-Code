@@ -9,6 +9,9 @@ library(ROCit)
 library(stats)
 library(tidyverse)
 
+# Boolean for deleting the 4 rows that are 90% "Unknown"
+listwise_deletion <- TRUE
+
 # Load the CSV
 file_path <- "~/Downloads/COVIDCSV - main.csv"
 data <- read.csv(
@@ -43,6 +46,31 @@ data <- data %>%
         Smoking.History. = as.factor(Smoking.History.),
         Anticoagulation. = as.factor(Anticoagulation.)
     )
+
+# Remove the 4 rows that have missing data here. Each of these rows has exactly
+# 4 missing values, and they are all from the same 4 patients. These patients have
+# only age, gender, and race completed, and therefore probably shouldn't be included
+# The paper found here (https://bmcmedresmethodol.biomedcentral.com/articles/10.1186/s12874-017-0442-1)
+# remarks that studies should use listwise deletion if the % of deleted rows is 
+# below 5%. In our case, it is 2.1%, and encompasses data for which imputation makes
+# little sense. Furthermore, imputation doesn't really make sense here since there is no
+# pattern to the missingness. It is essentially MCAR, for which MI should not be done
+if (listwise_deletion) {
+    data <- data %>% filter(
+        !is.na(Diabetes) 
+        & !is.na(HTN) 
+        & !is.na(COPD) 
+        & !is.na(Asthma) 
+        & !is.na(Hx.of.DVT) 
+        & !is.na(CKD) 
+        & !is.na(Cancer) 
+        & !is.na(Hx.of.MI) 
+        & !is.na(CVD) 
+        & !is.na(CHF) 
+        & !is.na(Hypothyroid)
+        & !is.na(Baseline.Plaquenil)
+    )
+}
 
 # Relevel to reference groups
 data$Race <- relevel(data$Race, ref = "White")
@@ -119,7 +147,11 @@ for (predictor_var in predictor_vars) {
     predM[predictor_var, predictor_var] <- 0
 }
 
-# We use multiple imputation using MICE. This is a set of multiple imputations for data that is MAR and MCAR. The data is MNAR if the value of the unobserved variable itself predicts missingness, which we don't believe to be true, so we can use this here.
+# We use multiple imputation using MICE. This is a set of multiple imputations for 
+# data that is MAR. For Race and for Smoking history, their probability of being 
+# missing is heavily correlated with hospitalized.for.COVID & HTN (Fisher test has 
+# p = 0.007 and 0.01943, respectively). It is difficult to rule out MNAR, though
+# MICE still works for MNAR
 imputed <- mice(
     data = data, 
     method = methods, 
@@ -282,8 +314,10 @@ print(paste(
 # The models which we will test LOOCV for
 # model_1: age, gender, race,
 # model_2: all variables with <=0.1 significance in the univariate analysis (Age, SNF, HTN, DVT, MI, Cancer, CVD, CKD, CHF, Steroids/IMT, ACEI/ARB, Anticoagulation,  )
+
+# model_1 <- Hospitalized.for.COVID ~ SNF + CVD + CKD + Cancer + Steroids.or.IMT
 model_1 <- Hospitalized.for.COVID ~ Age + Gender + Race
-model_2 <- Hospitalized.for.COVID ~ Age + SNF + HTN + Hx.of.DVT + Hx.of.MI + CKD + Cancer + CVD + CHF + Steroids.or.IMT + ACEI.ARB + Anticoagulation.
+model_2 <- Hospitalized.for.COVID ~ Age + SNF + HTN + COPD + CVD + CKD + Cancer + CHF + Hx.of.DVT + Hx.of.MI + Steroids.or.IMT + ACEI.ARB + Anticoagulation.
 models <- c(model_1, model_2)
 
 patients <- unique(data$Accession)
@@ -328,10 +362,12 @@ for (n in 1:length(patients)) {
 
 # Create graphs for ROC and PR data
 par(mfrow=c(2,3))
-roc_1 <- rocit(score = predicteds[,2], class = predicteds[,1])
-roc_2 <- rocit(score = predicteds[,3], class = predicteds[,1])
-measure_1 <- measureit(score = predicteds[,2], class = predicteds[,1], measure = c("ACC", "SENS", "SPEC", "PREC"))
-measure_2 <- measureit(score = predicteds[,3], class = predicteds[,1], measure = c("ACC", "SENS", "SPEC", "PREC"))
+method <- "empirical"
+negref <- "0"
+roc_1 <- rocit(score = predicteds[,2], class = predicteds[,1], method = method, negref= negref)
+roc_2 <- rocit(score = predicteds[,3], class = predicteds[,1], method = method, negref= negref)
+measure_1 <- measureit(score = predicteds[,2], class = predicteds[,1], measure = c("ACC", "SENS", "SPEC", "PREC"), negref= negref)
+measure_2 <- measureit(score = predicteds[,3], class = predicteds[,1], measure = c("ACC", "SENS", "SPEC", "PREC"), negref= negref)
 
 plot(roc_1, col = c(1,"black"), legend = FALSE, YIndex = FALSE)
 lines(roc_2$TPR ~ roc_2$FPR, col = c(2,"red"), lwd = 2)
@@ -392,13 +428,13 @@ model_1_adjusted_RR <- pool(with(
 # Only using the model from model_2
 model_2_adjusted_RR <- pool(with(
     imputed, 
-    glm(Hospitalized.for.COVID ~ Age + SNF + HTN + Hx.of.DVT + Hx.of.MI 
-        + CKD + Cancer + CVD + CHF + Steroids.or.IMT + ACEI.ARB 
-        + Anticoagulation., family = binomial(link=logit))
+    glm(Hospitalized.for.COVID ~ Age + SNF + HTN + COPD + CVD + CKD 
+        + Cancer + CHF + Hx.of.DVT + Hx.of.MI + Steroids.or.IMT 
+        + ACEI.ARB + Anticoagulation., family = binomial(link=logit))
     ))
 
 # Create a list of all the terms
-terms <- c("(Intercept)")
+terms <- c("(Intercept)", "Age")
 for (test_matrix in test_matrices) {
     terms <- c(terms, paste(test_matrix[1], test_matrix[2], sep=""))
 }

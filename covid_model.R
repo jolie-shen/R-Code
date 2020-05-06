@@ -5,6 +5,7 @@ library(mice)
 library(PropCIs)
 library(questionr)
 library(regclass)
+library(ROCit)
 library(stats)
 library(tidyverse)
 
@@ -286,7 +287,7 @@ model_2 <- Hospitalized.for.COVID ~ Age + SNF + HTN + Hx.of.DVT + Hx.of.MI + CKD
 models <- c(model_1, model_2)
 
 patients <- unique(data$Accession)
-mses <- vector(length = length(models))
+predicteds <- matrix(nrow = length(patients), ncol = length(models) + 1)
 
 # For each patient, we will test each model on each imputed data set. For each model, we
 # will average the outputs across imputed data sets, and report that number. That will
@@ -314,16 +315,47 @@ for (n in 1:length(patients)) {
 
         avg <- sum / num_imputations
         averages[index_num] <- avg
-        mses[index_num] <- mses[index_num] + ((is_hospitalized - avg) * (is_hospitalized - avg))
         index_num <- index_num + 1
+    }
+
+    predicteds[n,1] <- is_hospitalized
+    for (i in 1:length(models)) {
+        predicteds[n,i+1] <- averages[i]
     }
 
     print(paste(paste(patient, is_hospitalized, sep=","), paste(averages, collapse = ","), sep=","))
 }
 
-# Print mean squared errors
-print("MSEs:")
-print(paste(mses / length(patients), collapse = ","))
+# Create graphs for ROC and PR data
+par(mfrow=c(2,3))
+roc_1 <- rocit(score = predicteds[,2], class = predicteds[,1])
+roc_2 <- rocit(score = predicteds[,3], class = predicteds[,1])
+measure_1 <- measureit(score = predicteds[,2], class = predicteds[,1], measure = c("ACC", "SENS", "SPEC", "PREC"))
+measure_2 <- measureit(score = predicteds[,3], class = predicteds[,1], measure = c("ACC", "SENS", "SPEC", "PREC"))
+
+plot(roc_1, col = c(1,"black"), legend = FALSE, YIndex = FALSE)
+lines(roc_2$TPR ~ roc_2$FPR, col = c(2,"red"), lwd = 2)
+legend("bottomright", col = c(1,2), c("Model 1", "Model 2"), lwd = 2)
+
+plot(measure_1$ACC ~ measure_1$Cutoff, col = c(1,"black"), legend = FALSE, YIndex = FALSE, type = "l", xlab = "Cutoff", ylab = "Accuracy")
+lines(measure_2$ACC ~ measure_2$Cutoff, type = "l", col = c(2,"red"), lwd = 2)
+legend("bottomright", title = "Accuracy by Cutoff", col = c(1,2), c("Model 1", "Model 2"), lwd = 2)
+
+plot(measure_1$SENS ~ measure_1$Cutoff, col = c(1,"black"), legend = FALSE, YIndex = FALSE, type = "l", xlab = "Cutoff", ylab = "Sensitivity")
+lines(measure_2$SENS ~ measure_2$Cutoff, type = "l", col = c(2,"red"), lwd = 2)
+legend("bottomright", title = "Sensitivity by Cutoff", col = c(1,2), c("Model 1", "Model 2"), lwd = 2)
+
+plot(measure_1$SPEC ~ measure_1$Cutoff, col = c(1,"black"), legend = FALSE, YIndex = FALSE, type = "l", xlab = "Cutoff", ylab = "Specificity")
+lines(measure_2$SPEC ~ measure_2$Cutoff, type = "l", col = c(2,"red"), lwd = 2)
+legend("bottomright", title = "Specification by Cutoff", col = c(1,2), c("Model 1", "Model 2"), lwd = 2)
+
+plot(measure_1$PREC ~ measure_1$Cutoff, col = c(1,"black"), legend = FALSE, YIndex = FALSE, type = "l", xlab = "Cutoff", ylab = "Precision")
+lines(measure_2$PREC ~ measure_2$Cutoff, type = "l", col = c(2,"red"), lwd = 2)
+legend("bottomright", title = "Precision by Cutoff", col = c(1,2), c("Model 1", "Model 2"), lwd = 2)
+
+plot(measure_1$PREC ~ measure_1$SENS, col = c(1,"black"), legend = FALSE, type = "l", YIndex = FALSE, xlab = "Recall", ylab = "Precision")
+lines(measure_2$PREC ~ measure_2$SENS, type = "l", col = c(2,"red"), lwd = 2)
+legend("bottomright", title = "Precision/Recall", col = c(1,2), c("Model 1", "Model 2"), lwd = 2)
 
 # Pool uses Rubin's Rules to pool models built on a matrix of imputed data sets 
 # (basically builds a model for every single imputed dataset, i.e. all 25, and 

@@ -338,10 +338,10 @@ for (n in 1:length(patients)) {
     index_num <- 1
     for (model in models) {
         sum <- 0
-        imputed_data <- complete(imputed, i)
-        train_data <- imputed_data %>% filter(Accession != patient)
-        test_data <- imputed_data %>% filter(Accession == patient)
         for (i in 1:num_imputations) {
+            imputed_data <- complete(imputed, i)
+            train_data <- imputed_data %>% filter(Accession != patient)
+            test_data <- imputed_data %>% filter(Accession == patient)
             output <- glm(model, family = binomial(link=logit), data = train_data)
             response <- predict(output, newdata = test_data, type="response")
             sum <- sum + response

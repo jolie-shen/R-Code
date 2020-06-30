@@ -9,8 +9,15 @@ library(ROCit)
 library(stats)
 library(tidyverse)
 
-# Boolean for deleting the 4 rows that are 90% "Unknown"
-listwise_deletion <- FALSE
+# Boolean for deleting the 6 rows that are 90% "Unknown"
+listwise_deletion <- TRUE
+
+# Should p-values in univariate use imputed data
+USE_IMPUTATIONS_FOR_UNIVARIATE <- TRUE
+
+# Decide whether the NAs in the race category are "other" or are missing,
+# and should therefore be imputed
+TREAT_RACE_NAS_AS_OTHER <- FALSE
 
 # Load the CSV
 file_path <- "~/Downloads/clinical_level_enc-clade.csv"
@@ -21,7 +28,7 @@ data <- read.csv(
     strip.white = TRUE
 )
 
-# Remove clades of zero--we just want a binary comparison
+# Remove clades of zero--we just want a binary comparison. Only 2 rows
 data <- data %>% filter(clade != 0)
 
 # Set factor variables
@@ -48,32 +55,12 @@ data <- data %>%
         ACEI.ARB = as.factor(ACEI.ARB),
         Smoking.History. = as.factor(Smoking.History.),
         Anticoagulation. = as.factor(Anticoagulation.),
+        Death = as.factor(Death),
         clade = as.factor(clade)
     )
 
-# Remove the 4 rows that have missing data here. Each of these rows has exactly
-# 4 missing values, and they are all from the same 4 patients. These patients have
-# only age, gender, and race completed, and therefore probably shouldn't be included
-# The paper found here (https://bmcmedresmethodol.biomedcentral.com/articles/10.1186/s12874-017-0442-1)
-# remarks that studies should use listwise deletion if the % of deleted rows is 
-# below 5%. In our case, it is 2.1%, and encompasses data for which imputation makes
-# little sense. Furthermore, imputation doesn't really make sense here since there is no
-# pattern to the missingness. It is essentially MCAR, for which MI should not be done
-if (listwise_deletion) {
-    data <- data %>% filter(
-        !is.na(Diabetes) 
-        & !is.na(HTN) 
-        & !is.na(COPD) 
-        & !is.na(Asthma) 
-        & !is.na(Hx.of.DVT) 
-        & !is.na(CKD) 
-        & !is.na(Cancer) 
-        & !is.na(Hx.of.MI) 
-        & !is.na(CVD) 
-        & !is.na(CHF) 
-        & !is.na(Hypothyroid)
-        & !is.na(Baseline.Plaquenil)
-    )
+if (TREAT_RACE_NAS_AS_OTHER) {
+    data <- data %>% mutate(Race = replace_na(Race, "Other"))
 }
 
 # Relevel to reference groups
@@ -119,7 +106,7 @@ methods[c("Race")] = "polyreg"
 methods[c("SNF", "Diabetes", "HTN", "COPD", "Asthma", "Hx.of.DVT", "CKD", 
     "Cancer", "Hx.of.MI", "CVD", "CHF", "Hypothyroid", "Steroids.or.IMT", 
     "Baseline.Plaquenil", "ACEI.ARB", "Anticoagulation.", "clade", "Smoking.History.", 
-    "Hospitalized.for.COVID")] = "logreg" 
+    "Hospitalized.for.COVID", "Death")] = "logreg" 
 
 # Set all variables to 0 to begin with
 predM <- ifelse(predM < 0, 1, 0)
@@ -129,7 +116,7 @@ predictor_vars <- c(
     "Hospitalized.for.COVID", "Age", "Gender", "Race", "SNF", "Diabetes", 
     "HTN", "COPD", "Asthma", "Hx.of.DVT", "CKD", "Cancer", "Hx.of.MI", 
     "CVD", "CHF", "Hypothyroid", "Steroids.or.IMT", "Baseline.Plaquenil", 
-    "ACEI.ARB", "Smoking.History.", "Anticoagulation.", "clade"
+    "ACEI.ARB", "Smoking.History.", "Anticoagulation.", "clade", "Death"
 )
 
 # Pick which factors should be involved in imputation. This is a well-known
@@ -237,8 +224,6 @@ format_p_val <- function(p_val) {
 }
 
 pct_cols <- c(4, 5, 6, 9, 10, 11, 14, 15, 16)
-
-USE_IMPUTATIONS_FOR_UNIVARIATE <- FALSE
 
 # Computes all univariate analysis, using Fisher's and Chi-SQ. Also computes 
 # N and percentages, and Clopper-Pearson intervals from them. This could also
@@ -367,17 +352,59 @@ print(paste(
     sep = ","
 ))
 
+
+# Remove the 4 rows that have missing data here. Each of these rows has exactly
+# 4 missing values, and they are all from the same 4 patients. These patients have
+# only age, gender, and race completed, and therefore probably shouldn't be included
+# The paper found here (https://bmcmedresmethodol.biomedcentral.com/articles/10.1186/s12874-017-0442-1)
+# remarks that studies should use listwise deletion if the % of deleted rows is 
+# below 5%. In our case, it is 2.1%, and encompasses data for which imputation makes
+# little sense. Furthermore, imputation doesn't really make sense here since there is no
+# pattern to the missingness. It is essentially MCAR, for which MI should not be done
+if (listwise_deletion) {
+    data <- data %>% filter(
+        !is.na(Diabetes) 
+        & !is.na(HTN) 
+        & !is.na(COPD) 
+        & !is.na(Asthma) 
+        & !is.na(Hx.of.DVT) 
+        & !is.na(CKD) 
+        & !is.na(Cancer) 
+        & !is.na(Hx.of.MI) 
+        & !is.na(CVD) 
+        & !is.na(CHF) 
+        & !is.na(Hypothyroid)
+        & !is.na(Baseline.Plaquenil)
+    )
+
+    imputed <- mice(
+        data = data, 
+        method = methods, 
+        predictorMatrix = predM, 
+        m = num_imputations, 
+        maxit = iterations, 
+        seed = random_seed_num
+    )
+}
+
 ### Perform LOO calibration
 
 # The models which we will test LOOCV for
 # model_1: age, gender, race,
 # model_2: all variables with <=0.1 significance in the univariate analysis (Hospitalized.for.COVID + COPD + CVD + Cancer + Hx.of.DVT + Smoking.History. + Steroids.or.IMT + Anticoagulation.)
 
-# model_1 <- clade ~ SNF + CVD + CKD + Cancer + Steroids.or.IMT
 model_1 <- clade ~ Age + Gender + Race
 model_2 <- clade ~ Hospitalized.for.COVID + COPD + CVD + Cancer + Hx.of.DVT + Smoking.History. + Steroids.or.IMT + Anticoagulation.
-# model_2 <- clade ~ Diabetes + Smoking.History. + CVD + Steroids.or.IMT + Anticoagulation. + CKD + Cancer
-# model_4 <- clade ~ Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation.
+
+# Stepwise AIC optimized
+model_3 <- clade ~ Diabetes + Smoking.History. + CVD + Steroids.or.IMT + Anticoagulation. + CKD + Cancer
+
+# LASSO regression selected
+model_4 <- clade ~ Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation.
+
+# Stepwise with optimizing for ROC_AUC
+model_5 <- clade ~ Age + Race + Cancer + Smoking.History. + Hospitalized.for.COVID
+
 models <- c(model_1, model_2)
 
 # Variables with significance in univariate, stepwise AIC regression, and in LASSO regression:
@@ -426,7 +453,7 @@ for (n in 1:length(patients)) {
 # Create graphs for ROC and PR data
 par(mfrow=c(2,3))
 method <- "empirical"
-negref <- "0"
+negref <- "1"
 roc_1 <- rocit(score = predicteds[,2], class = predicteds[,1], method = method, negref= negref)
 roc_2 <- rocit(score = predicteds[,3], class = predicteds[,1], method = method, negref= negref)
 measure_1 <- measureit(score = predicteds[,2], class = predicteds[,1], measure = c("ACC", "SENS", "SPEC", "PREC"), negref= negref)
@@ -436,7 +463,7 @@ plot(roc_1, col = c(1,"black"), legend = FALSE, YIndex = FALSE)
 lines(roc_2$TPR ~ roc_2$FPR, col = c(2,"red"), lwd = 2)
 legend("bottomright", col = c(1,2), c("Model 1", "Model 2"), lwd = 2)
 
-plot(measure_1$ACC ~ measure_1$Cutoff, col = c(1,"black"), legend = FALSE, YIndex = FALSE, type = "l", xlab = "Cutoff", ylab = "Accuracy")
+plot(measure_1$ACC ~ measure_1$Cutoff, col = c(1,"black"), legend = FALSE, YIndex = FALSE, type = "l", ylim = c(0.35, 0.65), xlab = "Cutoff", ylab = "Accuracy")
 lines(measure_2$ACC ~ measure_2$Cutoff, type = "l", col = c(2,"red"), lwd = 2)
 legend("bottomright", title = "Accuracy by Cutoff", col = c(1,2), c("Model 1", "Model 2"), lwd = 2)
 
@@ -448,11 +475,11 @@ plot(measure_1$SPEC ~ measure_1$Cutoff, col = c(1,"black"), legend = FALSE, YInd
 lines(measure_2$SPEC ~ measure_2$Cutoff, type = "l", col = c(2,"red"), lwd = 2)
 legend("bottomright", title = "Specification by Cutoff", col = c(1,2), c("Model 1", "Model 2"), lwd = 2)
 
-plot(measure_1$PREC ~ measure_1$Cutoff, col = c(1,"black"), legend = FALSE, YIndex = FALSE, type = "l", xlab = "Cutoff", ylab = "Precision")
+plot(measure_1$PREC ~ measure_1$Cutoff, col = c(1,"black"), legend = FALSE, YIndex = FALSE, type = "l", ylim = c(0, 1), xlab = "Cutoff", ylab = "Precision")
 lines(measure_2$PREC ~ measure_2$Cutoff, type = "l", col = c(2,"red"), lwd = 2)
 legend("bottomright", title = "Precision by Cutoff", col = c(1,2), c("Model 1", "Model 2"), lwd = 2)
 
-plot(measure_1$PREC ~ measure_1$SENS, col = c(1,"black"), legend = FALSE, type = "l", YIndex = FALSE, xlab = "Recall", ylab = "Precision")
+plot(measure_1$PREC ~ measure_1$SENS, col = c(1,"black"), legend = FALSE, type = "l", YIndex = FALSE, ylim = c(0, 1), xlab = "Recall", ylab = "Precision")
 lines(measure_2$PREC ~ measure_2$SENS, type = "l", col = c(2,"red"), lwd = 2)
 legend("bottomright", title = "Precision/Recall", col = c(1,2), c("Model 1", "Model 2"), lwd = 2)
 

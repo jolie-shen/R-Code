@@ -391,9 +391,9 @@ if (listwise_deletion) {
 
 # The models which we will test LOOCV for
 # model_1: age, gender, race,
-# model_2: all variables with <=0.1 significance in the univariate analysis (Hospitalized.for.COVID + COPD + CVD + Cancer + Hx.of.DVT + Smoking.History. + Steroids.or.IMT + Anticoagulation.)
-
 model_1 <- clade ~ Age + Gender + Race
+
+# All univariate significance of 0.1 <
 model_2 <- clade ~ Hospitalized.for.COVID + COPD + CVD + Cancer + Hx.of.DVT + Smoking.History. + Steroids.or.IMT + Anticoagulation.
 
 # Stepwise AIC optimized
@@ -402,8 +402,11 @@ model_3 <- clade ~ Diabetes + Smoking.History. + CVD + Steroids.or.IMT + Anticoa
 # LASSO regression selected
 model_4 <- clade ~ Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation.
 
-# Stepwise with optimizing for ROC_AUC
+# Stepwise with optimizing for ROC_AUC by MDG
 model_5 <- clade ~ Age + Race + Cancer + Smoking.History. + Hospitalized.for.COVID
+
+# Stepwise AUC-RF by MDA. This one is the best for AUC ROC
+model_6 <- clade ~ Smoking.History. + Cancer + Anticoagulation. + Hospitalized.for.COVID + Steroids.or.IMT + CVD + Hx.of.DVT + Race + Age
 
 models <- c(model_1, model_2)
 

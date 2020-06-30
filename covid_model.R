@@ -9,8 +9,15 @@ library(ROCit)
 library(stats)
 library(tidyverse)
 
-# Boolean for deleting the 4 rows that are 90% "Unknown"
-listwise_deletion <- FALSE
+# Boolean for deleting the 6 rows that are 90% "Unknown"
+listwise_deletion <- TRUE
+
+# Should p-values in univariate use imputed data
+USE_IMPUTATIONS_FOR_UNIVARIATE <- TRUE
+
+# Decide whether the NAs in the race category are "other" or are missing,
+# and should therefore be imputed
+TREAT_RACE_NAS_AS_OTHER <- FALSE
 
 # Load the CSV
 file_path <- "~/Downloads/clinical_level_enc-clade.csv"
@@ -21,8 +28,13 @@ data <- read.csv(
     strip.white = TRUE
 )
 
-# Remove clades of zero--we just want a binary comparison
+# Remove clades of zero--we just want a binary comparison. Only 2 rows
 data <- data %>% filter(clade != 0)
+
+if (TREAT_RACE_NAS_AS_OTHER) {
+    levels(data$Race) <- c(levels(data$Race), "Other")
+    data$Race[is.na(data$Race)] <- "Other"
+}
 
 # Set factor variables
 data <- data %>%
@@ -48,33 +60,11 @@ data <- data %>%
         ACEI.ARB = as.factor(ACEI.ARB),
         Smoking.History. = as.factor(Smoking.History.),
         Anticoagulation. = as.factor(Anticoagulation.),
+        Death = as.factor(Death),
         clade = as.factor(clade)
     )
 
-# Remove the 4 rows that have missing data here. Each of these rows has exactly
-# 4 missing values, and they are all from the same 4 patients. These patients have
-# only age, gender, and race completed, and therefore probably shouldn't be included
-# The paper found here (https://bmcmedresmethodol.biomedcentral.com/articles/10.1186/s12874-017-0442-1)
-# remarks that studies should use listwise deletion if the % of deleted rows is 
-# below 5%. In our case, it is 2.1%, and encompasses data for which imputation makes
-# little sense. Furthermore, imputation doesn't really make sense here since there is no
-# pattern to the missingness. It is essentially MCAR, for which MI should not be done
-if (listwise_deletion) {
-    data <- data %>% filter(
-        !is.na(Diabetes) 
-        & !is.na(HTN) 
-        & !is.na(COPD) 
-        & !is.na(Asthma) 
-        & !is.na(Hx.of.DVT) 
-        & !is.na(CKD) 
-        & !is.na(Cancer) 
-        & !is.na(Hx.of.MI) 
-        & !is.na(CVD) 
-        & !is.na(CHF) 
-        & !is.na(Hypothyroid)
-        & !is.na(Baseline.Plaquenil)
-    )
-}
+
 
 # Relevel to reference groups
 data$Race <- relevel(data$Race, ref = "White")
@@ -95,7 +85,7 @@ set.seed(random_seed_num)
 # is, "the number of imputations should be similar to the percentage of 
 # cases that are incomplete." Given the computational expense and the above
 # literature, plus the small amount of missing data, a value of 40 seems valid
-num_imputations <- 40
+num_imputations <- 25
 
 # Royston and White (2011) and Van Buuren et al. (1999) have all suggested
 # that more than 10 cycles are needed for the convergence of the sampling
@@ -106,7 +96,7 @@ num_imputations <- 40
 # we ran the well-known method described in "MICE in R" from the Journal of 
 # Statistical Software (2011), and found good convergence using just 10 
 # iterations. As a precaution, we've upped this to 25.
-iterations <- 25
+iterations <- 40
 
 # Simply just set up the methods and predictor matrices, as suggested in Heymans and Eekhout's "Applied Missing Data Analysis"
 init <- mice(data, maxit = 0) 
@@ -119,7 +109,7 @@ methods[c("Race")] = "polyreg"
 methods[c("SNF", "Diabetes", "HTN", "COPD", "Asthma", "Hx.of.DVT", "CKD", 
     "Cancer", "Hx.of.MI", "CVD", "CHF", "Hypothyroid", "Steroids.or.IMT", 
     "Baseline.Plaquenil", "ACEI.ARB", "Anticoagulation.", "clade", "Smoking.History.", 
-    "Hospitalized.for.COVID")] = "logreg" 
+    "Hospitalized.for.COVID", "Death")] = "logreg" 
 
 # Set all variables to 0 to begin with
 predM <- ifelse(predM < 0, 1, 0)
@@ -129,7 +119,7 @@ predictor_vars <- c(
     "Hospitalized.for.COVID", "Age", "Gender", "Race", "SNF", "Diabetes", 
     "HTN", "COPD", "Asthma", "Hx.of.DVT", "CKD", "Cancer", "Hx.of.MI", 
     "CVD", "CHF", "Hypothyroid", "Steroids.or.IMT", "Baseline.Plaquenil", 
-    "ACEI.ARB", "Smoking.History.", "Anticoagulation.", "clade"
+    "ACEI.ARB", "Smoking.History.", "Anticoagulation.", "clade", "Death"
 )
 
 # Pick which factors should be involved in imputation. This is a well-known
@@ -266,7 +256,7 @@ for (test_matrix in test_matrices) {
     non <- c(non_N, non_total, non_N / non_total, non_ci$conf.int[1][1], non_ci$conf.int[2][1])
 
     # Don't print the standard output because we don't care about this until later
-    invisible(capture.output(odds <- oddsratio(curr)))
+    invisible(capture.output(odds <- oddsratio(curr[3], curr[4], curr[1], curr[2])))
 
     # Calculating fisher's and chi-square. The for-loop loops through each 
     # imputated data set and runs the univariate regression. This uses the 
@@ -274,16 +264,30 @@ for (test_matrix in test_matrices) {
     # https://bmcmedresmethodol.biomedcentral.com/articles/10.1186/s12874-017-0404-7
     fisher_p_vals <- c()
     chisq_p_vals <- c()
-    for (i in 1:num_imputations) {
-        # Gets the contingency matrix based on the ith imputed data set
-        curr <- get_matrix(test_matrix, complete(imputed, i))
+    if (USE_IMPUTATIONS_FOR_UNIVARIATE) {
+        for (i in 1:num_imputations) {
+            # Gets the contingency matrix based on the ith imputed data set
+            curr <- get_matrix(test_matrix, complete(imputed, i))
 
-        # Uses fisher's mid-P correction, since it tends to be too 
-        # conservative. Can find research on this
+            # Uses fisher's mid-P correction, since it tends to be too 
+            # conservative. Can find research on this
+            fisher <- uncondExact2x2(curr[1][1], 
+                curr[1][1]+curr[3][1], 
+                curr[2][1], 
+                curr[2][1] + curr[4][1], 
+                parmtype = "oddsratio", 
+                conf.int = FALSE, 
+                midp = TRUE
+            )
+            chisq <- chisq.test(curr)
+            fisher_p_vals <- c(fisher_p_vals, fisher$p.value)
+            chisq_p_vals <- c(chisq_p_vals, chisq$p.value)
+        }
+    } else {
         fisher <- uncondExact2x2(curr[1][1], 
-            curr[1][1]+curr[2][1], 
-            curr[3][1], 
-            curr[3][1] + curr[4][1], 
+            curr[1][1]+curr[3][1], 
+            curr[2][1], 
+            curr[2][1] + curr[4][1], 
             parmtype = "oddsratio", 
             conf.int = FALSE, 
             midp = TRUE
@@ -292,6 +296,7 @@ for (test_matrix in test_matrices) {
         fisher_p_vals <- c(fisher_p_vals, fisher$p.value)
         chisq_p_vals <- c(chisq_p_vals, chisq$p.value)
     }
+
 
     row_name <- paste(test_matrix[1], test_matrix[2], sep="-")
     row <- c(row_name, all, hosp, non, 
@@ -350,19 +355,66 @@ print(paste(
     sep = ","
 ))
 
+
+# Remove the 4 rows that have missing data here. Each of these rows has exactly
+# 4 missing values, and they are all from the same 4 patients. These patients have
+# only age, gender, and race completed, and therefore probably shouldn't be included
+# The paper found here (https://bmcmedresmethodol.biomedcentral.com/articles/10.1186/s12874-017-0442-1)
+# remarks that studies should use listwise deletion if the % of deleted rows is 
+# below 5%. In our case, it is 2.1%, and encompasses data for which imputation makes
+# little sense. Furthermore, imputation doesn't really make sense here since there is no
+# pattern to the missingness. It is essentially MCAR, for which MI should not be done
+if (listwise_deletion) {
+    data <- data %>% filter(
+        !is.na(Diabetes) 
+        & !is.na(HTN) 
+        & !is.na(COPD) 
+        & !is.na(Asthma) 
+        & !is.na(Hx.of.DVT) 
+        & !is.na(CKD) 
+        & !is.na(Cancer) 
+        & !is.na(Hx.of.MI) 
+        & !is.na(CVD) 
+        & !is.na(CHF) 
+        & !is.na(Hypothyroid)
+        & !is.na(Baseline.Plaquenil)
+    )
+
+    imputed <- mice(
+        data = data, 
+        method = methods, 
+        predictorMatrix = predM, 
+        m = num_imputations, 
+        maxit = iterations, 
+        seed = random_seed_num
+    )
+}
+
 ### Perform LOO calibration
 
 # The models which we will test LOOCV for
 # model_1: age, gender, race,
-# model_2: all variables with <=0.1 significance in the univariate analysis (Hospitalized.for.COVID + COPD + CVD + Cancer + Hx.of.DVT + Smoking.History. + Steroids.or.IMT + Anticoagulation.)
+model_1 <- clade ~ Age + Race + Gender
 
-# model_1 <- clade ~ SNF + CVD + CKD + Cancer + Steroids.or.IMT
-model_1 <- clade ~ Age + Gender + Race
+# All univariate significance of 0.1 <
 model_2 <- clade ~ Hospitalized.for.COVID + COPD + CVD + Cancer + Hx.of.DVT + Smoking.History. + Steroids.or.IMT + Anticoagulation.
-# model_3 <- clade ~ Diabetes + Smoking.History. + CVD + Steroids.or.IMT + Anticoagulation. + CKD + Cancer
-# model_4 <- clade ~ Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation.
-# model_4 had the highest AUC
-models <- c(model_1, model_2)
+
+# Stepwise AIC optimized
+model_3 <- clade ~ Diabetes + Smoking.History. + CVD + Steroids.or.IMT + Anticoagulation. + CKD + Cancer
+
+# LASSO regression selected. Same for MSE, AUC, and class, exception of Steroids
+model_4 <- clade ~ Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation.
+
+# Stepwise with optimizing for ROC_AUC by MDG
+model_5 <- clade ~ Age + Race + Cancer + Smoking.History. + Hospitalized.for.COVID
+
+# Stepwise AUC-RF by MDA. This one is the best for AUC ROC
+model_6 <- clade ~ Race + Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation.
+
+# Model removing worst elements
+combined_model <- clade ~ Age + Race + CVD + CKD + Cancer + Smoking.History. + Steroids.or.IMT + Anticoagulation.
+
+models <- c(model_1, combined_model)
 
 # Variables with significance in univariate, stepwise AIC regression, and in LASSO regression:
 # Cancer & Smoking
@@ -375,7 +427,7 @@ predicteds <- matrix(nrow = length(patients), ncol = length(models) + 1)
 # also be used for the MSE at the end
 for (n in 1:length(patients)) {
     patient <- patients[n]
-    if ((data %>% filter(Accession == patient))$clade[1] == 2) {
+    if ((data %>% filter(Accession == patient))$clade[1] == 1) {
         is_clade_1 <- 1
     } else {
         is_clade_1 <- 0
@@ -410,7 +462,7 @@ for (n in 1:length(patients)) {
 # Create graphs for ROC and PR data
 par(mfrow=c(2,3))
 method <- "empirical"
-negref <- "0"
+negref <- "1"
 roc_1 <- rocit(score = predicteds[,2], class = predicteds[,1], method = method, negref= negref)
 roc_2 <- rocit(score = predicteds[,3], class = predicteds[,1], method = method, negref= negref)
 measure_1 <- measureit(score = predicteds[,2], class = predicteds[,1], measure = c("ACC", "SENS", "SPEC", "PREC"), negref= negref)
@@ -420,7 +472,7 @@ plot(roc_1, col = c(1,"black"), legend = FALSE, YIndex = FALSE)
 lines(roc_2$TPR ~ roc_2$FPR, col = c(2,"red"), lwd = 2)
 legend("bottomright", col = c(1,2), c("Model 1", "Model 2"), lwd = 2)
 
-plot(measure_1$ACC ~ measure_1$Cutoff, col = c(1,"black"), legend = FALSE, YIndex = FALSE, type = "l", xlab = "Cutoff", ylab = "Accuracy")
+plot(measure_1$ACC ~ measure_1$Cutoff, col = c(1,"black"), legend = FALSE, YIndex = FALSE, type = "l", ylim = c(0.35, 0.65), xlab = "Cutoff", ylab = "Accuracy")
 lines(measure_2$ACC ~ measure_2$Cutoff, type = "l", col = c(2,"red"), lwd = 2)
 legend("bottomright", title = "Accuracy by Cutoff", col = c(1,2), c("Model 1", "Model 2"), lwd = 2)
 
@@ -432,11 +484,11 @@ plot(measure_1$SPEC ~ measure_1$Cutoff, col = c(1,"black"), legend = FALSE, YInd
 lines(measure_2$SPEC ~ measure_2$Cutoff, type = "l", col = c(2,"red"), lwd = 2)
 legend("bottomright", title = "Specification by Cutoff", col = c(1,2), c("Model 1", "Model 2"), lwd = 2)
 
-plot(measure_1$PREC ~ measure_1$Cutoff, col = c(1,"black"), legend = FALSE, YIndex = FALSE, type = "l", xlab = "Cutoff", ylab = "Precision")
+plot(measure_1$PREC ~ measure_1$Cutoff, col = c(1,"black"), legend = FALSE, YIndex = FALSE, type = "l", ylim = c(0, 1), xlab = "Cutoff", ylab = "Precision")
 lines(measure_2$PREC ~ measure_2$Cutoff, type = "l", col = c(2,"red"), lwd = 2)
 legend("bottomright", title = "Precision by Cutoff", col = c(1,2), c("Model 1", "Model 2"), lwd = 2)
 
-plot(measure_1$PREC ~ measure_1$SENS, col = c(1,"black"), legend = FALSE, type = "l", YIndex = FALSE, xlab = "Recall", ylab = "Precision")
+plot(measure_1$PREC ~ measure_1$SENS, col = c(1,"black"), legend = FALSE, type = "l", YIndex = FALSE, ylim = c(0, 1), xlab = "Recall", ylab = "Precision")
 lines(measure_2$PREC ~ measure_2$SENS, type = "l", col = c(2,"red"), lwd = 2)
 legend("bottomright", title = "Precision/Recall", col = c(1,2), c("Model 1", "Model 2"), lwd = 2)
 
@@ -494,6 +546,12 @@ model_4_adjusted_RR <- pool(with(
     glm(clade ~ Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation., family = binomial(link=logit))
     ))
 
+# Combined model
+model_5_adjusted_RR <- pool(with(
+    imputed,
+    glm(clade ~ Age + Race + CVD + CKD + Cancer + Smoking.History. + Steroids.or.IMT + Anticoagulation., family = binomial(link=logit))
+))
+
 # Create a list of all the terms
 terms <- c("(Intercept)", "Age")
 for (test_matrix in test_matrices) {
@@ -501,14 +559,15 @@ for (test_matrix in test_matrices) {
 }
 
 # Print out the adjusted risk ratios, standard error, and p-values of the models
-print("term,all-var-adjusted-ratio,all-var-std-error,all-var-p-value,model-1-adjusted-ratio,model-1-std-error,model-1-p-value,model-2-adjusted-ratio,model-2-std-error,model-2-p-value,model-3-adjusted-ratio,model-3-std-error,model-3-p-value,model-4-adjusted-ratio,model-4-std-error,model-4-p-value")
+print("term,all-var-adjusted-ratio,all-var-std-error,all-var-p-value,model-1-adjusted-ratio,model-1-std-error,model-1-p-value,model-2-adjusted-ratio,model-2-std-error,model-2-p-value,model-3-adjusted-ratio,model-3-std-error,model-3-p-value,model-4-adjusted-ratio,model-4-std-error,model-4-p-value,model-5-adjusted-ratio,model-5-std-error,model-5-p-value")
 for (term in terms) {
     aaRR <- paste(get_data(all_adjusted_RR, term), collapse=",")
     m1RR <- paste(get_data(model_1_adjusted_RR, term), collapse=",")
     m2RR <- paste(get_data(model_2_adjusted_RR, term), collapse=",")
     m3RR <- paste(get_data(model_3_adjusted_RR, term), collapse=",")
     m4RR <- paste(get_data(model_4_adjusted_RR, term), collapse=",")
-    print(paste(term, aaRR, m1RR, m2RR, m3RR, m4RR, sep=","))
+    m5RR <- paste(get_data(model_5_adjusted_RR, term), collapse=",")
+    print(paste(term, aaRR, m1RR, m2RR, m3RR, m4RR, m5RR, sep=","))
 }
 
 # Important to note that the VIF for all variables in all 3 models were under 2.

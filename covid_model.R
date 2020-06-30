@@ -394,7 +394,7 @@ if (listwise_deletion) {
 
 # The models which we will test LOOCV for
 # model_1: age, gender, race,
-model_1 <- clade ~ Age + Gender + Race
+model_1 <- clade ~ Age + Race + Gender
 
 # All univariate significance of 0.1 <
 model_2 <- clade ~ Hospitalized.for.COVID + COPD + CVD + Cancer + Hx.of.DVT + Smoking.History. + Steroids.or.IMT + Anticoagulation.
@@ -402,16 +402,19 @@ model_2 <- clade ~ Hospitalized.for.COVID + COPD + CVD + Cancer + Hx.of.DVT + Sm
 # Stepwise AIC optimized
 model_3 <- clade ~ Diabetes + Smoking.History. + CVD + Steroids.or.IMT + Anticoagulation. + CKD + Cancer
 
-# LASSO regression selected
+# LASSO regression selected. Same for MSE, AUC, and class, exception of Steroids
 model_4 <- clade ~ Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation.
 
 # Stepwise with optimizing for ROC_AUC by MDG
 model_5 <- clade ~ Age + Race + Cancer + Smoking.History. + Hospitalized.for.COVID
 
 # Stepwise AUC-RF by MDA. This one is the best for AUC ROC
-model_6 <- clade ~ Smoking.History. + Cancer + Anticoagulation. + Hospitalized.for.COVID + Steroids.or.IMT + CVD + Hx.of.DVT + Race + Age
+model_6 <- clade ~ Race + Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation.
 
-models <- c(model_1, model_2)
+# Model removing worst elements
+combined_model <- clade ~ Age + Race + CVD + CKD + Cancer + Smoking.History. + Steroids.or.IMT + Anticoagulation.
+
+models <- c(model_1, combined_model)
 
 # Variables with significance in univariate, stepwise AIC regression, and in LASSO regression:
 # Cancer & Smoking
@@ -543,6 +546,12 @@ model_4_adjusted_RR <- pool(with(
     glm(clade ~ Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation., family = binomial(link=logit))
     ))
 
+# Combined model
+model_5_adjusted_RR <- pool(with(
+    imputed,
+    glm(clade ~ Age + Race + CVD + CKD + Cancer + Smoking.History. + Steroids.or.IMT + Anticoagulation., family = binomial(link=logit))
+))
+
 # Create a list of all the terms
 terms <- c("(Intercept)", "Age")
 for (test_matrix in test_matrices) {
@@ -550,14 +559,15 @@ for (test_matrix in test_matrices) {
 }
 
 # Print out the adjusted risk ratios, standard error, and p-values of the models
-print("term,all-var-adjusted-ratio,all-var-std-error,all-var-p-value,model-1-adjusted-ratio,model-1-std-error,model-1-p-value,model-2-adjusted-ratio,model-2-std-error,model-2-p-value,model-3-adjusted-ratio,model-3-std-error,model-3-p-value,model-4-adjusted-ratio,model-4-std-error,model-4-p-value")
+print("term,all-var-adjusted-ratio,all-var-std-error,all-var-p-value,model-1-adjusted-ratio,model-1-std-error,model-1-p-value,model-2-adjusted-ratio,model-2-std-error,model-2-p-value,model-3-adjusted-ratio,model-3-std-error,model-3-p-value,model-4-adjusted-ratio,model-4-std-error,model-4-p-value,model-5-adjusted-ratio,model-5-std-error,model-5-p-value")
 for (term in terms) {
     aaRR <- paste(get_data(all_adjusted_RR, term), collapse=",")
     m1RR <- paste(get_data(model_1_adjusted_RR, term), collapse=",")
     m2RR <- paste(get_data(model_2_adjusted_RR, term), collapse=",")
     m3RR <- paste(get_data(model_3_adjusted_RR, term), collapse=",")
     m4RR <- paste(get_data(model_4_adjusted_RR, term), collapse=",")
-    print(paste(term, aaRR, m1RR, m2RR, m3RR, m4RR, sep=","))
+    m5RR <- paste(get_data(model_5_adjusted_RR, term), collapse=",")
+    print(paste(term, aaRR, m1RR, m2RR, m3RR, m4RR, m5RR, sep=","))
 }
 
 # Important to note that the VIF for all variables in all 3 models were under 2.

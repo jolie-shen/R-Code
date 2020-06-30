@@ -10,7 +10,7 @@ library(stats)
 library(tidyverse)
 
 # Boolean for deleting the 4 rows that are 90% "Unknown"
-listwise_deletion <- TRUE
+listwise_deletion <- FALSE
 
 # Load the CSV
 file_path <- "~/Downloads/clinical_level_enc-clade.csv"
@@ -192,7 +192,7 @@ test_matrices <- list(
     c("Smoking.History.", "Yes", "No"),
     c("Steroids.or.IMT", "Yes", "No"),
     c("Baseline.Plaquenil", "Yes", "No"),
-    c("ACEI.ARB", "Yes", "No"),
+    c("ACEI.ARB", "Yes", "None"),
     c("Anticoagulation.", "Yes", "No")
 )
 
@@ -242,7 +242,7 @@ pct_cols <- c(4, 5, 6, 9, 10, 11, 14, 15, 16)
 # N and percentages, and Clopper-Pearson intervals from them. This could also
 # use the Barnard's test, as it is been shown to have a higher power, but we
 # won't include it since most of the p-values are conclusive without it
-print("value,num,total-num,percentage,95-CI-pct-low,95-CI-pct-high,num-clade-1,total-clade-1,pct-clade-1,95-CI-pct-clade-1-low,95-CI-pct-clade-1-high,num-clade-2,total-clade-2,pct-clade-2,95-CI-pct-clade-2-low,95-CI-pct-clade-2-high,odds-ratio,95-CI-odds-ratio-low,95-CI-odds-ratio-high,fisher-p-val,chisq-p-val")
+print("value,num,total-num,percentage,95-CI-pct-low,95-CI-pct-high,num-clade-1,total-clade-1,pct-clade-1,95-CI-pct-clade-1-low,95-CI-pct-clade-1-high,num-clade-2,total-clade-2,pct-clade-2,95-CI-pct-clade-2-low,95-CI-pct-clade-2-high,odds-ratio,95-CI-odds-ratio-low,95-CI-odds-ratio-high,fisher-p-val,chisq-p-val,num-missing-data,pct-missing-data")
 for (test_matrix in test_matrices) {
     # Get the contingency matrix for this term
     curr <- get_matrix(test_matrix, data)
@@ -314,6 +314,11 @@ for (test_matrix in test_matrices) {
     row[20] = format_p_val(as.numeric(row[20]))
     row[21] = format_p_val(as.numeric(row[21]))
 
+    col_name <- test_matrix[1]
+    num_missing <- length(which(is.na(data[col_name])))
+    pct_missing <- paste0(format(round(100 * num_missing / nrow(data), 1), nsmall = 1), "%")
+    row <- c(row, num_missing, pct_missing)
+
     print(paste(row, collapse=","))
 }
 
@@ -349,11 +354,12 @@ print(paste(
 
 # The models which we will test LOOCV for
 # model_1: age, gender, race,
-# model_2: all variables with <=0.1 significance in the univariate analysis (Age, SNF, HTN, DVT, MI, Cancer, CVD, CKD, CHF, Steroids/IMT, ACEI/ARB, Anticoagulation,  )
+# model_2: all variables with <=0.1 significance in the univariate analysis (Hospitalized.for.COVID + COPD + CVD + Cancer + Hx.of.DVT + Smoking.History. + Steroids.or.IMT + Anticoagulation.)
 
 # model_1 <- clade ~ SNF + CVD + CKD + Cancer + Steroids.or.IMT
 model_1 <- clade ~ Age + Gender + Race
-model_2 <- clade ~ Age + SNF + HTN + COPD + CVD + CKD + Cancer + CHF + Hx.of.DVT + Hx.of.MI + Steroids.or.IMT + ACEI.ARB + Anticoagulation.
+model_2 <- clade ~ Hospitalized.for.COVID + COPD + CVD + Cancer + Hx.of.DVT + Smoking.History. + Steroids.or.IMT + Anticoagulation.
+# model_2 <- clade ~ Diabetes + Smoking.History. + CVD + Steroids.or.IMT + Anticoagulation. + CKD + Cancer
 models <- c(model_1, model_2)
 
 patients <- unique(data$Accession)
@@ -364,7 +370,7 @@ predicteds <- matrix(nrow = length(patients), ncol = length(models) + 1)
 # also be used for the MSE at the end
 for (n in 1:length(patients)) {
     patient <- patients[n]
-    if ((data %>% filter(Accession == patient))$clade[1] == 1) {
+    if ((data %>% filter(Accession == patient))$clade[1] == 2) {
         is_clade_1 <- 1
     } else {
         is_clade_1 <- 0
@@ -467,9 +473,14 @@ model_1_adjusted_RR <- pool(with(
 # Only using the model from model_2
 model_2_adjusted_RR <- pool(with(
     imputed, 
-    glm(clade ~ Age + SNF + HTN + COPD + CVD + CKD 
-        + Cancer + CHF + Hx.of.DVT + Hx.of.MI + Steroids.or.IMT 
-        + ACEI.ARB + Anticoagulation., family = binomial(link=logit))
+    glm(clade ~ Hospitalized.for.COVID + COPD + CVD + Cancer + 
+    Hx.of.DVT + Smoking.History. + Steroids.or.IMT + Anticoagulation., family = binomial(link=logit))
+    ))
+
+# Stepwise AIC
+model_3_adjusted_RR <- pool(with(
+    imputed, 
+    glm(clade ~ Diabetes + Smoking.History. + CVD + Steroids.or.IMT + Anticoagulation. + CKD + Cancer, family = binomial(link=logit))
     ))
 
 # Create a list of all the terms

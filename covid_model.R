@@ -238,6 +238,8 @@ format_p_val <- function(p_val) {
 
 pct_cols <- c(4, 5, 6, 9, 10, 11, 14, 15, 16)
 
+USE_IMPUTATIONS_FOR_UNIVARIATE <- FALSE
+
 # Computes all univariate analysis, using Fisher's and Chi-SQ. Also computes 
 # N and percentages, and Clopper-Pearson intervals from them. This could also
 # use the Barnard's test, as it is been shown to have a higher power, but we
@@ -266,7 +268,7 @@ for (test_matrix in test_matrices) {
     non <- c(non_N, non_total, non_N / non_total, non_ci$conf.int[1][1], non_ci$conf.int[2][1])
 
     # Don't print the standard output because we don't care about this until later
-    invisible(capture.output(odds <- oddsratio(curr)))
+    invisible(capture.output(odds <- oddsratio(curr[3], curr[4], curr[1], curr[2])))
 
     # Calculating fisher's and chi-square. The for-loop loops through each 
     # imputated data set and runs the univariate regression. This uses the 
@@ -274,16 +276,30 @@ for (test_matrix in test_matrices) {
     # https://bmcmedresmethodol.biomedcentral.com/articles/10.1186/s12874-017-0404-7
     fisher_p_vals <- c()
     chisq_p_vals <- c()
-    for (i in 1:num_imputations) {
-        # Gets the contingency matrix based on the ith imputed data set
-        curr <- get_matrix(test_matrix, complete(imputed, i))
+    if (USE_IMPUTATIONS_FOR_UNIVARIATE) {
+        for (i in 1:num_imputations) {
+            # Gets the contingency matrix based on the ith imputed data set
+            curr <- get_matrix(test_matrix, complete(imputed, i))
 
-        # Uses fisher's mid-P correction, since it tends to be too 
-        # conservative. Can find research on this
+            # Uses fisher's mid-P correction, since it tends to be too 
+            # conservative. Can find research on this
+            fisher <- uncondExact2x2(curr[1][1], 
+                curr[1][1]+curr[3][1], 
+                curr[2][1], 
+                curr[2][1] + curr[4][1], 
+                parmtype = "oddsratio", 
+                conf.int = FALSE, 
+                midp = TRUE
+            )
+            chisq <- chisq.test(curr)
+            fisher_p_vals <- c(fisher_p_vals, fisher$p.value)
+            chisq_p_vals <- c(chisq_p_vals, chisq$p.value)
+        }
+    } else {
         fisher <- uncondExact2x2(curr[1][1], 
-            curr[1][1]+curr[2][1], 
-            curr[3][1], 
-            curr[3][1] + curr[4][1], 
+            curr[1][1]+curr[3][1], 
+            curr[2][1], 
+            curr[2][1] + curr[4][1], 
             parmtype = "oddsratio", 
             conf.int = FALSE, 
             midp = TRUE
@@ -292,6 +308,7 @@ for (test_matrix in test_matrices) {
         fisher_p_vals <- c(fisher_p_vals, fisher$p.value)
         chisq_p_vals <- c(chisq_p_vals, chisq$p.value)
     }
+
 
     row_name <- paste(test_matrix[1], test_matrix[2], sep="-")
     row <- c(row_name, all, hosp, non, 
@@ -359,9 +376,8 @@ print(paste(
 # model_1 <- clade ~ SNF + CVD + CKD + Cancer + Steroids.or.IMT
 model_1 <- clade ~ Age + Gender + Race
 model_2 <- clade ~ Hospitalized.for.COVID + COPD + CVD + Cancer + Hx.of.DVT + Smoking.History. + Steroids.or.IMT + Anticoagulation.
-# model_3 <- clade ~ Diabetes + Smoking.History. + CVD + Steroids.or.IMT + Anticoagulation. + CKD + Cancer
+# model_2 <- clade ~ Diabetes + Smoking.History. + CVD + Steroids.or.IMT + Anticoagulation. + CKD + Cancer
 # model_4 <- clade ~ Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation.
-# model_4 had the highest AUC
 models <- c(model_1, model_2)
 
 # Variables with significance in univariate, stepwise AIC regression, and in LASSO regression:
@@ -375,7 +391,7 @@ predicteds <- matrix(nrow = length(patients), ncol = length(models) + 1)
 # also be used for the MSE at the end
 for (n in 1:length(patients)) {
     patient <- patients[n]
-    if ((data %>% filter(Accession == patient))$clade[1] == 2) {
+    if ((data %>% filter(Accession == patient))$clade[1] == 1) {
         is_clade_1 <- 1
     } else {
         is_clade_1 <- 0

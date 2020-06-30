@@ -31,6 +31,11 @@ data <- read.csv(
 # Remove clades of zero--we just want a binary comparison. Only 2 rows
 data <- data %>% filter(clade != 0)
 
+if (TREAT_RACE_NAS_AS_OTHER) {
+    levels(data$Race) <- c(levels(data$Race), "Other")
+    data$Race[is.na(data$Race)] <- "Other"
+}
+
 # Set factor variables
 data <- data %>%
     mutate(
@@ -59,9 +64,7 @@ data <- data %>%
         clade = as.factor(clade)
     )
 
-if (TREAT_RACE_NAS_AS_OTHER) {
-    data <- data %>% mutate(Race = replace_na(Race, "Other"))
-}
+
 
 # Relevel to reference groups
 data$Race <- relevel(data$Race, ref = "White")
@@ -82,7 +85,7 @@ set.seed(random_seed_num)
 # is, "the number of imputations should be similar to the percentage of 
 # cases that are incomplete." Given the computational expense and the above
 # literature, plus the small amount of missing data, a value of 40 seems valid
-num_imputations <- 40
+num_imputations <- 25
 
 # Royston and White (2011) and Van Buuren et al. (1999) have all suggested
 # that more than 10 cycles are needed for the convergence of the sampling
@@ -93,7 +96,7 @@ num_imputations <- 40
 # we ran the well-known method described in "MICE in R" from the Journal of 
 # Statistical Software (2011), and found good convergence using just 10 
 # iterations. As a precaution, we've upped this to 25.
-iterations <- 25
+iterations <- 40
 
 # Simply just set up the methods and predictor matrices, as suggested in Heymans and Eekhout's "Applied Missing Data Analysis"
 init <- mice(data, maxit = 0) 

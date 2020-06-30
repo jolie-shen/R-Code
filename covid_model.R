@@ -1,4 +1,3 @@
-
 library(dplyr)
 library(exact2x2)
 library(fmsb)
@@ -11,16 +10,19 @@ library(stats)
 library(tidyverse)
 
 # Boolean for deleting the 4 rows that are 90% "Unknown"
-listwise_deletion <- TRUE
+listwise_deletion <- FALSE
 
 # Load the CSV
-file_path <- "~/Downloads/clinical_level_enc-clade"
+file_path <- "~/Downloads/clinical_level_enc-clade.csv"
 data <- read.csv(
     file = file_path, 
     header = TRUE, 
     na.strings = c("Unknown"), 
     strip.white = TRUE
 )
+
+# Remove clades of zero--we just want a binary comparison
+data <- data %>% filter(clade != 0)
 
 # Set factor variables
 data <- data %>%
@@ -76,6 +78,7 @@ if (listwise_deletion) {
 
 # Relevel to reference groups
 data$Race <- relevel(data$Race, ref = "White")
+data$clade <- relevel(data$clade, ref = 1)
 
 # Set random seed
 random_seed_num <- 3249
@@ -169,14 +172,12 @@ imputed <- mice(
 # term is the default value, and the third is the reference group, or the
 # value that we will be comparing against
 test_matrices <- list(
-    c("Hospitalized.for.COVID")
+    c("Hospitalized.for.COVID", "Yes", "No"),
     c("Gender", "M", "F"),
     c("SNF", "Yes", "No"),
     c("Race", "White", "White"),
     c("Race", "Asian", "White"),  # For example, we use "White" as a ref. group
-    c("Race", "African American", "White"),
-    c("Race", "American Indian or Alaskan Native", "White"),
-    c("Race", "Native Hawaiian or Pacific Islander", "White"),
+    c("Race", "Black or African American", "White"),
     c("Diabetes", "Yes", "No"),
     c("HTN", "Yes", "No"),
     c("COPD", "Yes", "No"),
@@ -191,13 +192,13 @@ test_matrices <- list(
     c("Smoking.History.", "Yes", "No"),
     c("Steroids.or.IMT", "Yes", "No"),
     c("Baseline.Plaquenil", "Yes", "No"),
-    c("ACEI.ARB", "Yes", "No"),
+    c("ACEI.ARB", "Yes", "None"),
     c("Anticoagulation.", "Yes", "No")
 )
 
 # Function that returns a 2x2 contingency matrix given a data set and a test
 # matrix. Computes the contingency table given by the T/F matrix from the
-# boolean values of Hospitalized.for.COVID and test_matrix[2]
+# boolean values of clade and test_matrix[2]
 get_matrix <- function(test_matrix, data) {
     if (test_matrix[2] == test_matrix[3]) {
         # In the case when the default and the reference group are the same, 
@@ -205,42 +206,60 @@ get_matrix <- function(test_matrix, data) {
         # attain a useful p-value and odds ratio. If preferred, we could simply
         # delete the results attained here.
         curr <- matrix(c(
-            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[2] & Hospitalized.for.COVID == 'Yes')),
-            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[2] & Hospitalized.for.COVID == 'No')),
-            nrow(subset(data, eval(parse(text = test_matrix[1])) != test_matrix[3] & Hospitalized.for.COVID == 'Yes')),
-            nrow(subset(data, eval(parse(text = test_matrix[1])) != test_matrix[3] & Hospitalized.for.COVID == 'No'))), nrow = 2, ncol = 2 )
+            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[2] & clade == 1)),
+            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[2] & clade == 2)),
+            nrow(subset(data, eval(parse(text = test_matrix[1])) != test_matrix[3] & clade == 1)),
+            nrow(subset(data, eval(parse(text = test_matrix[1])) != test_matrix[3] & clade == 2))), nrow = 2, ncol = 2 )
     } else {
         curr <- matrix(c(
-            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[2] & Hospitalized.for.COVID == 'Yes')),
-            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[2] & Hospitalized.for.COVID == 'No')),
-            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[3] & Hospitalized.for.COVID == 'Yes')),
-            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[3] & Hospitalized.for.COVID == 'No'))), nrow = 2, ncol = 2 )
+            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[2] & clade == 1)),
+            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[2] & clade == 2)),
+            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[3] & clade == 1)),
+            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[3] & clade == 2))), nrow = 2, ncol = 2 )
     }
     return(curr)
 }
+
+format_p_val <- function(p_val) {
+  if (is.na(p_val) || is.nan(p_val) || !is.numeric(p_val)) {
+    return("-")
+  } else if (p_val < 0.0001) {
+    return(paste0(format(round(p_val, 3), nsmall = 3), "****"))
+  } else if (p_val < 0.001) {
+    return(paste0(format(round(p_val, 3), nsmall = 3), "***"))
+  } else if (p_val < 0.01) {
+    return(paste0(format(round(p_val, 3), nsmall = 3), "**"))
+  } else if (p_val < 0.05) {
+    return(paste0(format(round(p_val, 3), nsmall = 3), "*"))
+  } else {
+    return(paste0(format(round(p_val, 3), nsmall = 3), ""))
+  }
+}
+
+pct_cols <- c(4, 5, 6, 9, 10, 11, 14, 15, 16)
 
 # Computes all univariate analysis, using Fisher's and Chi-SQ. Also computes 
 # N and percentages, and Clopper-Pearson intervals from them. This could also
 # use the Barnard's test, as it is been shown to have a higher power, but we
 # won't include it since most of the p-values are conclusive without it
-print("value,num,total-num,percentage,95-CI-pct-low,95-CI-pct-high,num-hospitalized,total-hospitalized,pct-hospitalized,95-CI-pct-hospitalized-low,95-CI-pct-hospitalized-high,num-non-hospitalized,total-non-hospitalized,pct-non-hospitalized,95-CI-pct-non-hospitalized-low,95-CI-pct-non-hospitalized-high,odds-ratio,95-CI-odds-ratio-low,95-CI-odds-ratio-high,fisher-p-val,chisq-p-val")
+print("value,num,total-num,percentage,95-CI-pct-low,95-CI-pct-high,num-clade-1,total-clade-1,pct-clade-1,95-CI-pct-clade-1-low,95-CI-pct-clade-1-high,num-clade-2,total-clade-2,pct-clade-2,95-CI-pct-clade-2-low,95-CI-pct-clade-2-high,odds-ratio,95-CI-odds-ratio-low,95-CI-odds-ratio-high,fisher-p-val,chisq-p-val,num-missing-data,pct-missing-data")
 for (test_matrix in test_matrices) {
     # Get the contingency matrix for this term
     curr <- get_matrix(test_matrix, data)
 
-    # Adding all the parts of the matrix together, this is basically what the bottom of the excel spreadsheet is doing when finding percentages of the three groups "all" "hospitalized" and "non-hospitalized"
+    # Adding all the parts of the matrix together, this is basically what the bottom of the excel spreadsheet is doing when finding percentages of the three groups "all" "clade 1" and "clade 2"
     all_total <- (curr[1][1] + curr[2][1] + curr[3][1] + curr[4][1])
     all_N <- (curr[1][1] + curr[2][1])
     all_ci <- exactci(all_N, all_total, conf.level = 0.95)
     all <- c(all_N, all_total, all_N / all_total, all_ci$conf.int[1][1], all_ci$conf.int[2][1])
 
-    # Creating N and totals for hospitalized
+    # Creating N and totals for clade 2
     hosp_total <- curr[1][1] + curr[3][1]
     hosp_N <- curr[1][1]
     hosp_ci <- exactci(hosp_N, hosp_total, conf.level = 0.95)
     hosp <- c(hosp_N, hosp_total, hosp_N / hosp_total, hosp_ci$conf.int[1][1], hosp_ci$conf.int[2][1])
 
-    # Creating N and totals for non-hospitalized
+    # Creating N and totals for clade 2
     non_total <- curr[2][1] + curr[4][1]
     non_N <- curr[2][1]
     non_ci <- exactci(non_N, non_total, conf.level = 0.95)
@@ -279,6 +298,27 @@ for (test_matrix in test_matrices) {
         odds$estimate, odds$conf.int[1], odds$conf.int[2], 
         median(fisher_p_vals), median(chisq_p_vals)
     )
+
+    for (i in pct_cols) {
+        if (!is.na(row[i])) {
+            row[i] = paste0(format(round(100 * as.numeric(row[i]), 1), nsmall = 1), "%")
+        }
+    }
+
+    for (i in 17:19) {
+        if (!is.na(row[i])) {
+            row[i] = format(round(as.numeric(row[i]), 3), nsmall = 3)
+        }
+    }
+    
+    row[20] = format_p_val(as.numeric(row[20]))
+    row[21] = format_p_val(as.numeric(row[21]))
+
+    col_name <- test_matrix[1]
+    num_missing <- length(which(is.na(data[col_name])))
+    pct_missing <- paste0(format(round(100 * num_missing / nrow(data), 1), nsmall = 1), "%")
+    row <- c(row, num_missing, pct_missing)
+
     print(paste(row, collapse=","))
 }
 
@@ -288,25 +328,25 @@ for (test_matrix in test_matrices) {
 # t-test with enough N, as opposed to the Mann-Whitney U test. However, we have included it
 # here, just in case p values differ by a lot. Care must be taken when interpreting this 
 # p-value, as the null hypothesis is not the same as a t-test
-age_non_hospitalized <- (data %>% filter(Hospitalized.for.COVID == "No"))$Age
-age_hospitalized <- (data %>% filter(Hospitalized.for.COVID == "Yes"))$Age
-t_test <- t.test(age_non_hospitalized, age_hospitalized)
-wilcox <- wilcox.test(age_non_hospitalized, age_hospitalized)
+age_clade_2 <- (data %>% filter(clade == 2))$Age
+age_clade_1 <- (data %>% filter(clade == 1))$Age
+t_test <- t.test(age_clade_2, age_clade_1)
+wilcox <- wilcox.test(age_clade_2, age_clade_1)
 print("Age stats:")
-print("total-num,mean,total-hospitalized,pct,mean,total-non-hospitalized,pct,mean,t-test-p-value,95-CI-low,95-CI-high,wilcox-p-value")
+print("total-num,mean,total-clade-1,pct,mean,total-clade-2,pct,mean,t-test-p-value,95-CI-low,95-CI-high,wilcox-p-value")
 print(paste(
     nrow(data),
     mean(data$Age),
-    length(age_hospitalized),
-    length(age_hospitalized) / nrow(data),
-    mean(age_hospitalized),
-    length(age_non_hospitalized),
-    length(age_non_hospitalized) / nrow(data),
-    mean(age_non_hospitalized),
-    t_test$p.value,
+    length(age_clade_1),
+    length(age_clade_1) / nrow(data),
+    mean(age_clade_1),
+    length(age_clade_2),
+    length(age_clade_2) / nrow(data),
+    mean(age_clade_2),
+    format_p_val(t_test$p.value),
     t_test$conf.int[1],
     t_test$conf.int[2],
-    wilcox$p.value,
+    format_p_val(wilcox$p.value),
     sep = ","
 ))
 
@@ -314,12 +354,18 @@ print(paste(
 
 # The models which we will test LOOCV for
 # model_1: age, gender, race,
-# model_2: all variables with <=0.1 significance in the univariate analysis (Age, SNF, HTN, DVT, MI, Cancer, CVD, CKD, CHF, Steroids/IMT, ACEI/ARB, Anticoagulation,  )
+# model_2: all variables with <=0.1 significance in the univariate analysis (Hospitalized.for.COVID + COPD + CVD + Cancer + Hx.of.DVT + Smoking.History. + Steroids.or.IMT + Anticoagulation.)
 
-# model_1 <- Hospitalized.for.COVID ~ SNF + CVD + CKD + Cancer + Steroids.or.IMT
-model_1 <- Hospitalized.for.COVID ~ Age + Gender + Race
-model_2 <- Hospitalized.for.COVID ~ Age + SNF + HTN + COPD + CVD + CKD + Cancer + CHF + Hx.of.DVT + Hx.of.MI + Steroids.or.IMT + ACEI.ARB + Anticoagulation.
+# model_1 <- clade ~ SNF + CVD + CKD + Cancer + Steroids.or.IMT
+model_1 <- clade ~ Age + Gender + Race
+model_2 <- clade ~ Hospitalized.for.COVID + COPD + CVD + Cancer + Hx.of.DVT + Smoking.History. + Steroids.or.IMT + Anticoagulation.
+# model_3 <- clade ~ Diabetes + Smoking.History. + CVD + Steroids.or.IMT + Anticoagulation. + CKD + Cancer
+# model_4 <- clade ~ Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation.
+# model_4 had the highest AUC
 models <- c(model_1, model_2)
+
+# Variables with significance in univariate, stepwise AIC regression, and in LASSO regression:
+# Cancer & Smoking
 
 patients <- unique(data$Accession)
 predicteds <- matrix(nrow = length(patients), ncol = length(models) + 1)
@@ -329,10 +375,10 @@ predicteds <- matrix(nrow = length(patients), ncol = length(models) + 1)
 # also be used for the MSE at the end
 for (n in 1:length(patients)) {
     patient <- patients[n]
-    if ((data %>% filter(Accession == patient))$Hospitalized.for.COVID[1] == "Yes") {
-        is_hospitalized <- 1
+    if ((data %>% filter(Accession == patient))$clade[1] == 2) {
+        is_clade_1 <- 1
     } else {
-        is_hospitalized <- 0
+        is_clade_1 <- 0
     }
 
     averages <- vector(length = length(models))
@@ -353,12 +399,12 @@ for (n in 1:length(patients)) {
         index_num <- index_num + 1
     }
 
-    predicteds[n,1] <- is_hospitalized
+    predicteds[n,1] <- is_clade_1
     for (i in 1:length(models)) {
         predicteds[n,i+1] <- averages[i]
     }
 
-    print(paste(paste(patient, is_hospitalized, sep=","), paste(averages, collapse = ","), sep=","))
+    print(paste(paste(patient, is_clade_1, sep=","), paste(averages, collapse = ","), sep=","))
 }
 
 # Create graphs for ROC and PR data
@@ -404,17 +450,20 @@ get_data <- function(pooled, term) {
     summ <- summary(pooled)
     for (i in 1:length(summ$term)) {
         if ((summ$term)[i] == term) {
-            v <- c(exp((summ$estimate)[i]), (summ$std.error)[i], (summ$p.value)[i])
+            or <- format(round(exp((summ$estimate)[i]), 2), nsmall = 2)
+            error <- format(round((summ$std.error)[i], 3), nsmall = 3)
+            p_val <- format_p_val((summ$p.value)[i])
+            v <- c(or, error, p_val)
             return(v)
         }
     }
-    return(c(NA,NA,NA))
+    return(c("","",""))
 }
 
 # All variables included
 all_adjusted_RR <- pool(with(
     imputed, 
-    glm(Hospitalized.for.COVID ~ Age + Gender + SNF + Race + Diabetes + HTN 
+    glm(clade ~ Hospitalized.for.COVID + Age + Gender + SNF + Race + Diabetes + HTN 
         + COPD + Asthma + CVD + CHF + CKD + Cancer + Hypothyroid + Hx.of.DVT 
         + Hx.of.MI + Smoking.History. + Steroids.or.IMT + Baseline.Plaquenil 
         + ACEI.ARB + Anticoagulation., family = binomial(link=logit))
@@ -423,15 +472,26 @@ all_adjusted_RR <- pool(with(
 # Only using the model from model_1
 model_1_adjusted_RR <- pool(with(
     imputed, 
-    glm(Hospitalized.for.COVID ~ Age + Gender + Race, family = binomial(link=logit))
+    glm(clade ~ Age + Gender + Race, family = binomial(link=logit))
     ))
 
 # Only using the model from model_2
 model_2_adjusted_RR <- pool(with(
     imputed, 
-    glm(Hospitalized.for.COVID ~ Age + SNF + HTN + COPD + CVD + CKD 
-        + Cancer + CHF + Hx.of.DVT + Hx.of.MI + Steroids.or.IMT 
-        + ACEI.ARB + Anticoagulation., family = binomial(link=logit))
+    glm(clade ~ Hospitalized.for.COVID + COPD + CVD + Cancer + 
+    Hx.of.DVT + Smoking.History. + Steroids.or.IMT + Anticoagulation., family = binomial(link=logit))
+    ))
+
+# Stepwise AIC
+model_3_adjusted_RR <- pool(with(
+    imputed, 
+    glm(clade ~ Diabetes + Smoking.History. + CVD + Steroids.or.IMT + Anticoagulation. + CKD + Cancer, family = binomial(link=logit))
+    ))
+
+# Using LASSO regression
+model_4_adjusted_RR <- pool(with(
+    imputed, 
+    glm(clade ~ Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation., family = binomial(link=logit))
     ))
 
 # Create a list of all the terms
@@ -441,12 +501,14 @@ for (test_matrix in test_matrices) {
 }
 
 # Print out the adjusted risk ratios, standard error, and p-values of the models
-print("term,all-var-adjusted-ratio,all-var-std-error,all-var-p-value,model-1-adjusted-ratio,model-1-std-error,model-1-p-value,model-2-adjusted-ratio,model-2-std-error,model-2-p-value")
+print("term,all-var-adjusted-ratio,all-var-std-error,all-var-p-value,model-1-adjusted-ratio,model-1-std-error,model-1-p-value,model-2-adjusted-ratio,model-2-std-error,model-2-p-value,model-3-adjusted-ratio,model-3-std-error,model-3-p-value,model-4-adjusted-ratio,model-4-std-error,model-4-p-value")
 for (term in terms) {
     aaRR <- paste(get_data(all_adjusted_RR, term), collapse=",")
     m1RR <- paste(get_data(model_1_adjusted_RR, term), collapse=",")
     m2RR <- paste(get_data(model_2_adjusted_RR, term), collapse=",")
-    print(paste(term, aaRR, m1RR, m2RR, sep=","))
+    m3RR <- paste(get_data(model_3_adjusted_RR, term), collapse=",")
+    m4RR <- paste(get_data(model_4_adjusted_RR, term), collapse=",")
+    print(paste(term, aaRR, m1RR, m2RR, m3RR, m4RR, sep=","))
 }
 
 # Important to note that the VIF for all variables in all 3 models were under 2.

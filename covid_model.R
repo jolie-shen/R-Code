@@ -450,7 +450,7 @@ get_data <- function(pooled, term) {
     summ <- summary(pooled)
     for (i in 1:length(summ$term)) {
         if ((summ$term)[i] == term) {
-            or <- format(round(exp((summ$estimate)[i]), 3), nsmall = 3)
+            or <- format(round(exp((summ$estimate)[i]), 2), nsmall = 2)
             error <- format(round((summ$std.error)[i], 3), nsmall = 3)
             p_val <- format_p_val((summ$p.value)[i])
             v <- c(or, error, p_val)

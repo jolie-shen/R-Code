@@ -1,4 +1,3 @@
-
 library(dplyr)
 library(exact2x2)
 library(fmsb)
@@ -14,13 +13,15 @@ library(tidyverse)
 listwise_deletion <- TRUE
 
 # Load the CSV
-file_path <- "~/Downloads/clinical_level_enc-clade"
+file_path <- "~/Downloads/clinical_level_enc-clade.csv"
 data <- read.csv(
     file = file_path, 
     header = TRUE, 
     na.strings = c("Unknown"), 
     strip.white = TRUE
 )
+
+data <- data %>% filter(clade != 0)
 
 # Set factor variables
 data <- data %>%
@@ -92,7 +93,7 @@ set.seed(random_seed_num)
 # is, "the number of imputations should be similar to the percentage of 
 # cases that are incomplete." Given the computational expense and the above
 # literature, plus the small amount of missing data, a value of 40 seems valid
-num_imputations <- 40
+num_imputations <- 2
 
 # Royston and White (2011) and Van Buuren et al. (1999) have all suggested
 # that more than 10 cycles are needed for the convergence of the sampling
@@ -103,7 +104,7 @@ num_imputations <- 40
 # we ran the well-known method described in "MICE in R" from the Journal of 
 # Statistical Software (2011), and found good convergence using just 10 
 # iterations. As a precaution, we've upped this to 25.
-iterations <- 25
+iterations <- 1
 
 # Simply just set up the methods and predictor matrices, as suggested in Heymans and Eekhout's "Applied Missing Data Analysis"
 init <- mice(data, maxit = 0) 
@@ -169,14 +170,12 @@ imputed <- mice(
 # term is the default value, and the third is the reference group, or the
 # value that we will be comparing against
 test_matrices <- list(
-    c("Hospitalized.for.COVID")
+    c("Hospitalized.for.COVID", "Yes", "No"),
     c("Gender", "M", "F"),
     c("SNF", "Yes", "No"),
     c("Race", "White", "White"),
     c("Race", "Asian", "White"),  # For example, we use "White" as a ref. group
-    c("Race", "African American", "White"),
-    c("Race", "American Indian or Alaskan Native", "White"),
-    c("Race", "Native Hawaiian or Pacific Islander", "White"),
+    c("Race", "Black or African American", "White"),
     c("Diabetes", "Yes", "No"),
     c("HTN", "Yes", "No"),
     c("COPD", "Yes", "No"),
@@ -205,25 +204,43 @@ get_matrix <- function(test_matrix, data) {
         # attain a useful p-value and odds ratio. If preferred, we could simply
         # delete the results attained here.
         curr <- matrix(c(
-            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[2] & Hospitalized.for.COVID == 'Yes')),
-            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[2] & Hospitalized.for.COVID == 'No')),
-            nrow(subset(data, eval(parse(text = test_matrix[1])) != test_matrix[3] & Hospitalized.for.COVID == 'Yes')),
-            nrow(subset(data, eval(parse(text = test_matrix[1])) != test_matrix[3] & Hospitalized.for.COVID == 'No'))), nrow = 2, ncol = 2 )
+            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[2] & clade == 1)),
+            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[2] & clade == 2)),
+            nrow(subset(data, eval(parse(text = test_matrix[1])) != test_matrix[3] & clade == 1)),
+            nrow(subset(data, eval(parse(text = test_matrix[1])) != test_matrix[3] & clade == 2))), nrow = 2, ncol = 2 )
     } else {
         curr <- matrix(c(
-            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[2] & Hospitalized.for.COVID == 'Yes')),
-            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[2] & Hospitalized.for.COVID == 'No')),
-            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[3] & Hospitalized.for.COVID == 'Yes')),
-            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[3] & Hospitalized.for.COVID == 'No'))), nrow = 2, ncol = 2 )
+            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[2] & clade == 1)),
+            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[2] & clade == 2)),
+            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[3] & clade == 1)),
+            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[3] & clade == 2))), nrow = 2, ncol = 2 )
     }
     return(curr)
 }
+
+format_p_val <- function(p_val) {
+  if (is.na(p_val) || is.nan(p_val) || !is.numeric(p_val)) {
+    return("-")
+  } else if (p_val < 0.0001) {
+    return(paste0(format(round(p_val, 3), nsmall = 3), "****"))
+  } else if (p_val < 0.001) {
+    return(paste0(format(round(p_val, 3), nsmall = 3), "***"))
+  } else if (p_val < 0.01) {
+    return(paste0(format(round(p_val, 3), nsmall = 3), "**"))
+  } else if (p_val < 0.05) {
+    return(paste0(format(round(p_val, 3), nsmall = 3), "*"))
+  } else {
+    return(paste0(format(round(p_val, 3), nsmall = 3), ""))
+  }
+}
+
+pct_cols <- c(4, 5, 6, 9, 10, 11, 14, 15, 16)
 
 # Computes all univariate analysis, using Fisher's and Chi-SQ. Also computes 
 # N and percentages, and Clopper-Pearson intervals from them. This could also
 # use the Barnard's test, as it is been shown to have a higher power, but we
 # won't include it since most of the p-values are conclusive without it
-print("value,num,total-num,percentage,95-CI-pct-low,95-CI-pct-high,num-hospitalized,total-hospitalized,pct-hospitalized,95-CI-pct-hospitalized-low,95-CI-pct-hospitalized-high,num-non-hospitalized,total-non-hospitalized,pct-non-hospitalized,95-CI-pct-non-hospitalized-low,95-CI-pct-non-hospitalized-high,odds-ratio,95-CI-odds-ratio-low,95-CI-odds-ratio-high,fisher-p-val,chisq-p-val")
+print("value,num,total-num,percentage,95-CI-pct-low,95-CI-pct-high,num-clade-1,total-clade-1,pct-clade-1,95-CI-pct-clade-1-low,95-CI-pct-clade-1-high,num-clade-2,total-clade-2,pct-clade-2,95-CI-pct-clade-2-low,95-CI-pct-clade-2-high,odds-ratio,95-CI-odds-ratio-low,95-CI-odds-ratio-high,fisher-p-val,chisq-p-val")
 for (test_matrix in test_matrices) {
     # Get the contingency matrix for this term
     curr <- get_matrix(test_matrix, data)
@@ -279,6 +296,22 @@ for (test_matrix in test_matrices) {
         odds$estimate, odds$conf.int[1], odds$conf.int[2], 
         median(fisher_p_vals), median(chisq_p_vals)
     )
+
+    for (i in pct_cols) {
+        if (!is.na(row[i])) {
+            row[i] = paste0(format(round(100 * as.numeric(row[i]), 1), nsmall = 1), "%")
+        }
+    }
+
+    for (i in 17:19) {
+        if (!is.na(row[i])) {
+            row[i] = format(round(as.numeric(row[i]), 3), nsmall = 3)
+        }
+    }
+    
+    row[20] = format_p_val(as.numeric(row[20]))
+    row[21] = format_p_val(as.numeric(row[21]))
+
     print(paste(row, collapse=","))
 }
 
@@ -288,21 +321,21 @@ for (test_matrix in test_matrices) {
 # t-test with enough N, as opposed to the Mann-Whitney U test. However, we have included it
 # here, just in case p values differ by a lot. Care must be taken when interpreting this 
 # p-value, as the null hypothesis is not the same as a t-test
-age_non_hospitalized <- (data %>% filter(Hospitalized.for.COVID == "No"))$Age
-age_hospitalized <- (data %>% filter(Hospitalized.for.COVID == "Yes"))$Age
-t_test <- t.test(age_non_hospitalized, age_hospitalized)
-wilcox <- wilcox.test(age_non_hospitalized, age_hospitalized)
+age_clade_2 <- (data %>% filter(clade == 2))$Age
+age_clade_1 <- (data %>% filter(clade == 1))$Age
+t_test <- t.test(age_clade_2, age_clade_1)
+wilcox <- wilcox.test(age_clade_2, age_clade_1)
 print("Age stats:")
-print("total-num,mean,total-hospitalized,pct,mean,total-non-hospitalized,pct,mean,t-test-p-value,95-CI-low,95-CI-high,wilcox-p-value")
+print("total-num,mean,total-clade-1,pct,mean,total-clade-2,pct,mean,t-test-p-value,95-CI-low,95-CI-high,wilcox-p-value")
 print(paste(
     nrow(data),
     mean(data$Age),
-    length(age_hospitalized),
-    length(age_hospitalized) / nrow(data),
-    mean(age_hospitalized),
-    length(age_non_hospitalized),
-    length(age_non_hospitalized) / nrow(data),
-    mean(age_non_hospitalized),
+    length(age_clade_1),
+    length(age_clade_1) / nrow(data),
+    mean(age_clade_1),
+    length(age_clade_2),
+    length(age_clade_2) / nrow(data),
+    mean(age_clade_2),
     t_test$p.value,
     t_test$conf.int[1],
     t_test$conf.int[2],
@@ -317,8 +350,8 @@ print(paste(
 # model_2: all variables with <=0.1 significance in the univariate analysis (Age, SNF, HTN, DVT, MI, Cancer, CVD, CKD, CHF, Steroids/IMT, ACEI/ARB, Anticoagulation,  )
 
 # model_1 <- Hospitalized.for.COVID ~ SNF + CVD + CKD + Cancer + Steroids.or.IMT
-model_1 <- Hospitalized.for.COVID ~ Age + Gender + Race
-model_2 <- Hospitalized.for.COVID ~ Age + SNF + HTN + COPD + CVD + CKD + Cancer + CHF + Hx.of.DVT + Hx.of.MI + Steroids.or.IMT + ACEI.ARB + Anticoagulation.
+model_1 <- clade ~ Age + Gender + Race
+model_2 <- clade ~ Age + SNF + HTN + COPD + CVD + CKD + Cancer + CHF + Hx.of.DVT + Hx.of.MI + Steroids.or.IMT + ACEI.ARB + Anticoagulation.
 models <- c(model_1, model_2)
 
 patients <- unique(data$Accession)
@@ -329,10 +362,10 @@ predicteds <- matrix(nrow = length(patients), ncol = length(models) + 1)
 # also be used for the MSE at the end
 for (n in 1:length(patients)) {
     patient <- patients[n]
-    if ((data %>% filter(Accession == patient))$Hospitalized.for.COVID[1] == "Yes") {
-        is_hospitalized <- 1
+    if ((data %>% filter(Accession == patient))$clade[1] == 1) {
+        is_clade_1 <- 1
     } else {
-        is_hospitalized <- 0
+        is_clade_1 <- 0
     }
 
     averages <- vector(length = length(models))
@@ -353,12 +386,12 @@ for (n in 1:length(patients)) {
         index_num <- index_num + 1
     }
 
-    predicteds[n,1] <- is_hospitalized
+    predicteds[n,1] <- is_clade_1
     for (i in 1:length(models)) {
         predicteds[n,i+1] <- averages[i]
     }
 
-    print(paste(paste(patient, is_hospitalized, sep=","), paste(averages, collapse = ","), sep=","))
+    print(paste(paste(patient, is_clade_1, sep=","), paste(averages, collapse = ","), sep=","))
 }
 
 # Create graphs for ROC and PR data
@@ -404,7 +437,10 @@ get_data <- function(pooled, term) {
     summ <- summary(pooled)
     for (i in 1:length(summ$term)) {
         if ((summ$term)[i] == term) {
-            v <- c(exp((summ$estimate)[i]), (summ$std.error)[i], (summ$p.value)[i])
+            or <- format(round(exp((summ$estimate)[i]), 3), nsmall = 3)
+            error <- format(round((summ$std.error)[i], 3), nsmall = 3)
+            p_val <- format_p_val((summ$p.value)[i])
+            v <- c(or, error, p_val)
             return(v)
         }
     }
@@ -414,7 +450,7 @@ get_data <- function(pooled, term) {
 # All variables included
 all_adjusted_RR <- pool(with(
     imputed, 
-    glm(Hospitalized.for.COVID ~ Age + Gender + SNF + Race + Diabetes + HTN 
+    glm(clade ~ Hospitalized.for.COVID + Age + Gender + SNF + Race + Diabetes + HTN 
         + COPD + Asthma + CVD + CHF + CKD + Cancer + Hypothyroid + Hx.of.DVT 
         + Hx.of.MI + Smoking.History. + Steroids.or.IMT + Baseline.Plaquenil 
         + ACEI.ARB + Anticoagulation., family = binomial(link=logit))
@@ -423,13 +459,13 @@ all_adjusted_RR <- pool(with(
 # Only using the model from model_1
 model_1_adjusted_RR <- pool(with(
     imputed, 
-    glm(Hospitalized.for.COVID ~ Age + Gender + Race, family = binomial(link=logit))
+    glm(clade ~ Age + Gender + Race, family = binomial(link=logit))
     ))
 
 # Only using the model from model_2
 model_2_adjusted_RR <- pool(with(
     imputed, 
-    glm(Hospitalized.for.COVID ~ Age + SNF + HTN + COPD + CVD + CKD 
+    glm(clade ~ Age + SNF + HTN + COPD + CVD + CKD 
         + Cancer + CHF + Hx.of.DVT + Hx.of.MI + Steroids.or.IMT 
         + ACEI.ARB + Anticoagulation., family = binomial(link=logit))
     ))

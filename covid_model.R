@@ -8,6 +8,8 @@ library(regclass)
 library(ROCit)
 library(stats)
 library(tidyverse)
+library(MASS)
+library(hash)
 
 # Boolean for deleting the 6 rows that are 90% "Unknown"
 listwise_deletion <- TRUE
@@ -17,7 +19,7 @@ USE_IMPUTATIONS_FOR_UNIVARIATE <- TRUE
 
 # Decide whether the NAs in the race category are "other" or are missing,
 # and should therefore be imputed
-TREAT_RACE_NAS_AS_OTHER <- FALSE
+TREAT_RACE_NAS_AS_OTHER <- TRUE
 
 # Load the CSV
 file_path <- "~/Downloads/clinical_level_enc-clade.csv"
@@ -36,10 +38,11 @@ if (TREAT_RACE_NAS_AS_OTHER) {
     data$Race[is.na(data$Race)] <- "Other"
 }
 
+data <- data %>% mutate(IsClade1 = ifelse(clade == 1, TRUE, FALSE))
+
 # Set factor variables
 data <- data %>%
     mutate(
-        Accession = as.factor(Accession),
         Gender = as.factor(Gender),
         Race = as.factor(Race),
         SNF = as.factor(SNF),
@@ -60,15 +63,13 @@ data <- data %>%
         ACEI.ARB = as.factor(ACEI.ARB),
         Smoking.History. = as.factor(Smoking.History.),
         Anticoagulation. = as.factor(Anticoagulation.),
-        Death = as.factor(Death),
-        clade = as.factor(clade)
+        Death = as.factor(Death)
     )
 
-
+data <- data[, !names(data) %in% c("clade")] 
 
 # Relevel to reference groups
 data$Race <- relevel(data$Race, ref = "White")
-data$clade <- relevel(data$clade, ref = 1)
 
 # Set random seed
 random_seed_num <- 3249
@@ -108,7 +109,7 @@ predM <- init$predictorMatrix
 methods[c("Race")] = "polyreg"
 methods[c("SNF", "Diabetes", "HTN", "COPD", "Asthma", "Hx.of.DVT", "CKD", 
     "Cancer", "Hx.of.MI", "CVD", "CHF", "Hypothyroid", "Steroids.or.IMT", 
-    "Baseline.Plaquenil", "ACEI.ARB", "Anticoagulation.", "clade", "Smoking.History.", 
+    "Baseline.Plaquenil", "ACEI.ARB", "Anticoagulation.", "IsClade1", "Smoking.History.", 
     "Hospitalized.for.COVID", "Death")] = "logreg" 
 
 # Set all variables to 0 to begin with
@@ -119,7 +120,7 @@ predictor_vars <- c(
     "Hospitalized.for.COVID", "Age", "Gender", "Race", "SNF", "Diabetes", 
     "HTN", "COPD", "Asthma", "Hx.of.DVT", "CKD", "Cancer", "Hx.of.MI", 
     "CVD", "CHF", "Hypothyroid", "Steroids.or.IMT", "Baseline.Plaquenil", 
-    "ACEI.ARB", "Smoking.History.", "Anticoagulation.", "clade", "Death"
+    "ACEI.ARB", "Smoking.History.", "Anticoagulation.", "IsClade1", "Death"
 )
 
 # Pick which factors should be involved in imputation. This is a well-known
@@ -168,6 +169,7 @@ test_matrices <- list(
     c("Race", "White", "White"),
     c("Race", "Asian", "White"),  # For example, we use "White" as a ref. group
     c("Race", "Black or African American", "White"),
+    c("Race", "Other", "White"),
     c("Diabetes", "Yes", "No"),
     c("HTN", "Yes", "No"),
     c("COPD", "Yes", "No"),
@@ -196,16 +198,16 @@ get_matrix <- function(test_matrix, data) {
         # attain a useful p-value and odds ratio. If preferred, we could simply
         # delete the results attained here.
         curr <- matrix(c(
-            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[2] & clade == 1)),
-            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[2] & clade == 2)),
-            nrow(subset(data, eval(parse(text = test_matrix[1])) != test_matrix[3] & clade == 1)),
-            nrow(subset(data, eval(parse(text = test_matrix[1])) != test_matrix[3] & clade == 2))), nrow = 2, ncol = 2 )
+            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[2] & IsClade1)),
+            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[2] & !IsClade1)),
+            nrow(subset(data, eval(parse(text = test_matrix[1])) != test_matrix[3] & IsClade1)),
+            nrow(subset(data, eval(parse(text = test_matrix[1])) != test_matrix[3] & !IsClade1))), nrow = 2, ncol = 2 )
     } else {
         curr <- matrix(c(
-            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[2] & clade == 1)),
-            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[2] & clade == 2)),
-            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[3] & clade == 1)),
-            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[3] & clade == 2))), nrow = 2, ncol = 2 )
+            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[2] & IsClade1)),
+            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[2] & !IsClade1)),
+            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[3] & IsClade1)),
+            nrow(subset(data, eval(parse(text = test_matrix[1])) == test_matrix[3] & !IsClade1))), nrow = 2, ncol = 2 )
     }
     return(curr)
 }
@@ -243,20 +245,20 @@ for (test_matrix in test_matrices) {
     all_ci <- exactci(all_N, all_total, conf.level = 0.95)
     all <- c(all_N, all_total, all_N / all_total, all_ci$conf.int[1][1], all_ci$conf.int[2][1])
 
-    # Creating N and totals for clade 2
-    hosp_total <- curr[1][1] + curr[3][1]
-    hosp_N <- curr[1][1]
-    hosp_ci <- exactci(hosp_N, hosp_total, conf.level = 0.95)
-    hosp <- c(hosp_N, hosp_total, hosp_N / hosp_total, hosp_ci$conf.int[1][1], hosp_ci$conf.int[2][1])
+    # Creating N and totals for clade 1
+    clade_1_total <- curr[1][1] + curr[3][1]
+    clade_1_N <- curr[1][1]
+    clade_1_CI <- exactci(clade_1_N, clade_1_total, conf.level = 0.95)
+    clade_1 <- c(clade_1_N, clade_1_total, clade_1_N / clade_1_total, clade_1_CI$conf.int[1][1], clade_1_CI$conf.int[2][1])
 
     # Creating N and totals for clade 2
-    non_total <- curr[2][1] + curr[4][1]
-    non_N <- curr[2][1]
-    non_ci <- exactci(non_N, non_total, conf.level = 0.95)
-    non <- c(non_N, non_total, non_N / non_total, non_ci$conf.int[1][1], non_ci$conf.int[2][1])
+    clade_2_total <- curr[2][1] + curr[4][1]
+    clade_2_N <- curr[2][1]
+    clade_2_CI <- exactci(clade_2_N, clade_2_total, conf.level = 0.95)
+    clade_2 <- c(clade_2_N, clade_2_total, clade_2_N / clade_2_total, clade_2_CI$conf.int[1][1], clade_2_CI$conf.int[2][1])
 
     # Don't print the standard output because we don't care about this until later
-    invisible(capture.output(odds <- oddsratio(curr[3], curr[4], curr[1], curr[2])))
+    invisible(capture.output(odds <- oddsratio(curr)))
 
     # Calculating fisher's and chi-square. The for-loop loops through each 
     # imputated data set and runs the univariate regression. This uses the 
@@ -299,7 +301,7 @@ for (test_matrix in test_matrices) {
 
 
     row_name <- paste(test_matrix[1], test_matrix[2], sep="-")
-    row <- c(row_name, all, hosp, non, 
+    row <- c(row_name, all, clade_1, clade_2, 
         odds$estimate, odds$conf.int[1], odds$conf.int[2], 
         median(fisher_p_vals), median(chisq_p_vals)
     )
@@ -333,10 +335,10 @@ for (test_matrix in test_matrices) {
 # t-test with enough N, as opposed to the Mann-Whitney U test. However, we have included it
 # here, just in case p values differ by a lot. Care must be taken when interpreting this 
 # p-value, as the null hypothesis is not the same as a t-test
-age_clade_2 <- (data %>% filter(clade == 2))$Age
-age_clade_1 <- (data %>% filter(clade == 1))$Age
-t_test <- t.test(age_clade_2, age_clade_1)
-wilcox <- wilcox.test(age_clade_2, age_clade_1)
+age_clade_1 <- (data %>% filter(!IsClade1))$Age
+age_clade_1 <- (data %>% filter(IsClade1))$Age
+t_test <- t.test(age_clade_1, age_clade_1)
+wilcox <- wilcox.test(age_clade_1, age_clade_1)
 print("Age stats:")
 print("total-num,mean,total-clade-1,pct,mean,total-clade-2,pct,mean,t-test-p-value,95-CI-low,95-CI-high,wilcox-p-value")
 print(paste(
@@ -345,9 +347,9 @@ print(paste(
     length(age_clade_1),
     length(age_clade_1) / nrow(data),
     mean(age_clade_1),
-    length(age_clade_2),
-    length(age_clade_2) / nrow(data),
-    mean(age_clade_2),
+    length(age_clade_1),
+    length(age_clade_1) / nrow(data),
+    mean(age_clade_1),
     format_p_val(t_test$p.value),
     t_test$conf.int[1],
     t_test$conf.int[2],
@@ -391,28 +393,35 @@ if (listwise_deletion) {
 }
 
 ### Perform LOO calibration
+subset <- complete(imputed, sample(1:imputed$m, 1))
+subset <- subset[, !names(subset) %in% c("Accession", "Death")]
 
 # The models which we will test LOOCV for
 # model_1: age, gender, race,
-model_1 <- clade ~ Age + Race + Gender
+model_1 <- IsClade1 ~ Age + Gender + Race
 
 # All univariate significance of 0.1 <
-model_2 <- clade ~ Hospitalized.for.COVID + COPD + CVD + Cancer + Hx.of.DVT + Smoking.History. + Steroids.or.IMT + Anticoagulation.
+model_2 <- IsClade1 ~ Hospitalized.for.COVID + COPD + CVD + Cancer + Hx.of.DVT + Smoking.History. + Steroids.or.IMT + Anticoagulation.
 
-# Stepwise AIC optimized
-model_3 <- clade ~ Diabetes + Smoking.History. + CVD + Steroids.or.IMT + Anticoagulation. + CKD + Cancer
+# Fit a model using backwards stepwise AIC. Note that stepwise AIC has been found to be problematic for many
+# reasons, and should not be used as anything other than a diagnostic
+result <- stepAIC(glm(IsClade1 ~ ., family = binomial(link = logit), data = subset), direction = "backward", trace = FALSE)
+terms <- attr(terms(result), "term.labels")
+stepwise_model <- as.formula(paste0("IsClade1 ~ ", paste(terms, collapse = " + ")))
 
 # LASSO regression selected. Same for MSE, AUC, and class, exception of Steroids
-model_4 <- clade ~ Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation.
+
+
+model_4 <- IsClade1 ~ Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation.
 
 # Stepwise with optimizing for ROC_AUC by MDG
-model_5 <- clade ~ Age + Race + Cancer + Smoking.History. + Hospitalized.for.COVID
+model_5 <- IsClade1 ~ Age + Race + Cancer + Smoking.History. + Hospitalized.for.COVID
 
 # Stepwise AUC-RF by MDA. This one is the best for AUC ROC
-model_6 <- clade ~ Race + Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation.
+model_6 <- IsClade1 ~ Race + Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation.
 
 # Model removing worst elements
-combined_model <- clade ~ Age + Race + CVD + CKD + Cancer + Smoking.History. + Steroids.or.IMT + Anticoagulation.
+combined_model <- IsClade1 ~ Age + Race + CVD + CKD + Cancer + Smoking.History. + Steroids.or.IMT + Anticoagulation.
 
 models <- c(model_1, combined_model)
 
@@ -427,7 +436,7 @@ predicteds <- matrix(nrow = length(patients), ncol = length(models) + 1)
 # also be used for the MSE at the end
 for (n in 1:length(patients)) {
     patient <- patients[n]
-    if ((data %>% filter(Accession == patient))$clade[1] == 1) {
+    if ((data %>% filter(Accession == patient))$IsClade1[1]) {
         is_clade_1 <- 1
     } else {
         is_clade_1 <- 0
@@ -462,7 +471,7 @@ for (n in 1:length(patients)) {
 # Create graphs for ROC and PR data
 par(mfrow=c(2,3))
 method <- "empirical"
-negref <- "1"
+negref <- "0"
 roc_1 <- rocit(score = predicteds[,2], class = predicteds[,1], method = method, negref= negref)
 roc_2 <- rocit(score = predicteds[,3], class = predicteds[,1], method = method, negref= negref)
 measure_1 <- measureit(score = predicteds[,2], class = predicteds[,1], measure = c("ACC", "SENS", "SPEC", "PREC"), negref= negref)
@@ -515,7 +524,7 @@ get_data <- function(pooled, term) {
 # All variables included
 all_adjusted_RR <- pool(with(
     imputed, 
-    glm(clade ~ Hospitalized.for.COVID + Age + Gender + SNF + Race + Diabetes + HTN 
+    glm(IsClade1 ~ Hospitalized.for.COVID + Age + Gender + SNF + Race + Diabetes + HTN 
         + COPD + Asthma + CVD + CHF + CKD + Cancer + Hypothyroid + Hx.of.DVT 
         + Hx.of.MI + Smoking.History. + Steroids.or.IMT + Baseline.Plaquenil 
         + ACEI.ARB + Anticoagulation., family = binomial(link=logit))
@@ -524,32 +533,32 @@ all_adjusted_RR <- pool(with(
 # Only using the model from model_1
 model_1_adjusted_RR <- pool(with(
     imputed, 
-    glm(clade ~ Age + Gender + Race, family = binomial(link=logit))
+    glm(IsClade1 ~ Age + Gender + Race, family = binomial(link=logit))
     ))
 
 # Only using the model from model_2
 model_2_adjusted_RR <- pool(with(
     imputed, 
-    glm(clade ~ Hospitalized.for.COVID + COPD + CVD + Cancer + 
+    glm(IsClade1 ~ Hospitalized.for.COVID + COPD + CVD + Cancer + 
     Hx.of.DVT + Smoking.History. + Steroids.or.IMT + Anticoagulation., family = binomial(link=logit))
     ))
 
 # Stepwise AIC
 model_3_adjusted_RR <- pool(with(
     imputed, 
-    glm(clade ~ Diabetes + Smoking.History. + CVD + Steroids.or.IMT + Anticoagulation. + CKD + Cancer, family = binomial(link=logit))
+    glm(IsClade1 ~ Diabetes + Smoking.History. + CVD + Steroids.or.IMT + Anticoagulation. + CKD + Cancer, family = binomial(link=logit))
     ))
 
 # Using LASSO regression
 model_4_adjusted_RR <- pool(with(
     imputed, 
-    glm(clade ~ Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation., family = binomial(link=logit))
+    glm(IsClade1 ~ Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation., family = binomial(link=logit))
     ))
 
 # Combined model
 model_5_adjusted_RR <- pool(with(
     imputed,
-    glm(clade ~ Age + Race + CVD + CKD + Cancer + Smoking.History. + Steroids.or.IMT + Anticoagulation., family = binomial(link=logit))
+    glm(IsClade1 ~ Age + Race + CVD + CKD + Cancer + Smoking.History. + Steroids.or.IMT + Anticoagulation., family = binomial(link=logit))
 ))
 
 # Create a list of all the terms

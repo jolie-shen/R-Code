@@ -21,6 +21,7 @@ data <- read.csv(
     strip.white = TRUE
 )
 
+# Remove clades of zero--we just want a binary comparison
 data <- data %>% filter(clade != 0)
 
 # Set factor variables
@@ -77,6 +78,7 @@ if (listwise_deletion) {
 
 # Relevel to reference groups
 data$Race <- relevel(data$Race, ref = "White")
+data$clade <- relevel(data$clade, ref = 1)
 
 # Set random seed
 random_seed_num <- 3249
@@ -93,7 +95,7 @@ set.seed(random_seed_num)
 # is, "the number of imputations should be similar to the percentage of 
 # cases that are incomplete." Given the computational expense and the above
 # literature, plus the small amount of missing data, a value of 40 seems valid
-num_imputations <- 2
+num_imputations <- 40
 
 # Royston and White (2011) and Van Buuren et al. (1999) have all suggested
 # that more than 10 cycles are needed for the convergence of the sampling
@@ -104,7 +106,7 @@ num_imputations <- 2
 # we ran the well-known method described in "MICE in R" from the Journal of 
 # Statistical Software (2011), and found good convergence using just 10 
 # iterations. As a precaution, we've upped this to 25.
-iterations <- 1
+iterations <- 25
 
 # Simply just set up the methods and predictor matrices, as suggested in Heymans and Eekhout's "Applied Missing Data Analysis"
 init <- mice(data, maxit = 0) 
@@ -196,7 +198,7 @@ test_matrices <- list(
 
 # Function that returns a 2x2 contingency matrix given a data set and a test
 # matrix. Computes the contingency table given by the T/F matrix from the
-# boolean values of Hospitalized.for.COVID and test_matrix[2]
+# boolean values of clade and test_matrix[2]
 get_matrix <- function(test_matrix, data) {
     if (test_matrix[2] == test_matrix[3]) {
         # In the case when the default and the reference group are the same, 
@@ -245,19 +247,19 @@ for (test_matrix in test_matrices) {
     # Get the contingency matrix for this term
     curr <- get_matrix(test_matrix, data)
 
-    # Adding all the parts of the matrix together, this is basically what the bottom of the excel spreadsheet is doing when finding percentages of the three groups "all" "hospitalized" and "non-hospitalized"
+    # Adding all the parts of the matrix together, this is basically what the bottom of the excel spreadsheet is doing when finding percentages of the three groups "all" "clade 1" and "clade 2"
     all_total <- (curr[1][1] + curr[2][1] + curr[3][1] + curr[4][1])
     all_N <- (curr[1][1] + curr[2][1])
     all_ci <- exactci(all_N, all_total, conf.level = 0.95)
     all <- c(all_N, all_total, all_N / all_total, all_ci$conf.int[1][1], all_ci$conf.int[2][1])
 
-    # Creating N and totals for hospitalized
+    # Creating N and totals for clade 2
     hosp_total <- curr[1][1] + curr[3][1]
     hosp_N <- curr[1][1]
     hosp_ci <- exactci(hosp_N, hosp_total, conf.level = 0.95)
     hosp <- c(hosp_N, hosp_total, hosp_N / hosp_total, hosp_ci$conf.int[1][1], hosp_ci$conf.int[2][1])
 
-    # Creating N and totals for non-hospitalized
+    # Creating N and totals for clade 2
     non_total <- curr[2][1] + curr[4][1]
     non_N <- curr[2][1]
     non_ci <- exactci(non_N, non_total, conf.level = 0.95)
@@ -349,7 +351,7 @@ print(paste(
 # model_1: age, gender, race,
 # model_2: all variables with <=0.1 significance in the univariate analysis (Age, SNF, HTN, DVT, MI, Cancer, CVD, CKD, CHF, Steroids/IMT, ACEI/ARB, Anticoagulation,  )
 
-# model_1 <- Hospitalized.for.COVID ~ SNF + CVD + CKD + Cancer + Steroids.or.IMT
+# model_1 <- clade ~ SNF + CVD + CKD + Cancer + Steroids.or.IMT
 model_1 <- clade ~ Age + Gender + Race
 model_2 <- clade ~ Age + SNF + HTN + COPD + CVD + CKD + Cancer + CHF + Hx.of.DVT + Hx.of.MI + Steroids.or.IMT + ACEI.ARB + Anticoagulation.
 models <- c(model_1, model_2)

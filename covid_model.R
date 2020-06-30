@@ -343,10 +343,10 @@ print(paste(
     length(age_clade_2),
     length(age_clade_2) / nrow(data),
     mean(age_clade_2),
-    t_test$p.value,
+    format_p_val(t_test$p.value),
     t_test$conf.int[1],
     t_test$conf.int[2],
-    wilcox$p.value,
+    format_p_val(wilcox$p.value),
     sep = ","
 ))
 
@@ -359,9 +359,13 @@ print(paste(
 # model_1 <- clade ~ SNF + CVD + CKD + Cancer + Steroids.or.IMT
 model_1 <- clade ~ Age + Gender + Race
 model_2 <- clade ~ Hospitalized.for.COVID + COPD + CVD + Cancer + Hx.of.DVT + Smoking.History. + Steroids.or.IMT + Anticoagulation.
-# model_2 <- clade ~ Diabetes + Smoking.History. + CVD + Steroids.or.IMT + Anticoagulation. + CKD + Cancer
-# model_2 <- clade ~ Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation.
+# model_3 <- clade ~ Diabetes + Smoking.History. + CVD + Steroids.or.IMT + Anticoagulation. + CKD + Cancer
+# model_4 <- clade ~ Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation.
+# model_4 had the highest AUC
 models <- c(model_1, model_2)
+
+# Variables with significance in univariate, stepwise AIC regression, and in LASSO regression:
+# Cancer & Smoking
 
 patients <- unique(data$Accession)
 predicteds <- matrix(nrow = length(patients), ncol = length(models) + 1)
@@ -453,7 +457,7 @@ get_data <- function(pooled, term) {
             return(v)
         }
     }
-    return(c(NA,NA,NA))
+    return(c("","",""))
 }
 
 # All variables included
@@ -497,12 +501,14 @@ for (test_matrix in test_matrices) {
 }
 
 # Print out the adjusted risk ratios, standard error, and p-values of the models
-print("term,all-var-adjusted-ratio,all-var-std-error,all-var-p-value,model-1-adjusted-ratio,model-1-std-error,model-1-p-value,model-2-adjusted-ratio,model-2-std-error,model-2-p-value")
+print("term,all-var-adjusted-ratio,all-var-std-error,all-var-p-value,model-1-adjusted-ratio,model-1-std-error,model-1-p-value,model-2-adjusted-ratio,model-2-std-error,model-2-p-value,model-3-adjusted-ratio,model-3-std-error,model-3-p-value,model-4-adjusted-ratio,model-4-std-error,model-4-p-value")
 for (term in terms) {
     aaRR <- paste(get_data(all_adjusted_RR, term), collapse=",")
     m1RR <- paste(get_data(model_1_adjusted_RR, term), collapse=",")
     m2RR <- paste(get_data(model_2_adjusted_RR, term), collapse=",")
-    print(paste(term, aaRR, m1RR, m2RR, sep=","))
+    m3RR <- paste(get_data(model_3_adjusted_RR, term), collapse=",")
+    m4RR <- paste(get_data(model_4_adjusted_RR, term), collapse=",")
+    print(paste(term, aaRR, m1RR, m2RR, m3RR, m4RR, sep=","))
 }
 
 # Important to note that the VIF for all variables in all 3 models were under 2.

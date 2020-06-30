@@ -410,15 +410,13 @@ terms <- attr(terms(result), "term.labels")
 stepwise_model <- as.formula(paste0("IsClade1 ~ ", paste(terms, collapse = " + ")))
 
 # LASSO regression selected. Same for MSE, AUC, and class, exception of Steroids
-
-
 model_4 <- IsClade1 ~ Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation.
 
 # Stepwise with optimizing for ROC_AUC by MDG
 model_5 <- IsClade1 ~ Age + Race + Cancer + Smoking.History. + Hospitalized.for.COVID
 
-# Stepwise AUC-RF by MDA. This one is the best for AUC ROC
-model_6 <- IsClade1 ~ Race + Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation.
+# Stepwise AUC-RF by MDA
+model_6 <- IsClade1 ~ Race + Age + Hospitalized.for.COVID + Hypothyroid + Gender + Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation.
 
 # Model removing worst elements
 combined_model <- IsClade1 ~ Age + Race + CVD + CKD + Cancer + Smoking.History. + Steroids.or.IMT + Anticoagulation.
@@ -512,13 +510,13 @@ get_data <- function(pooled, term) {
     for (i in 1:length(summ$term)) {
         if ((summ$term)[i] == term) {
             or <- format(round(exp((summ$estimate)[i]), 2), nsmall = 2)
-            error <- format(round((summ$std.error)[i], 3), nsmall = 3)
+            # error <- format(round((summ$std.error)[i], 3), nsmall = 3)
             p_val <- format_p_val((summ$p.value)[i])
-            v <- c(or, error, p_val)
+            v <- c(or, p_val)
             return(v)
         }
     }
-    return(c("","",""))
+    return(c("",""))
 }
 
 # All variables included
@@ -546,7 +544,7 @@ model_2_adjusted_RR <- pool(with(
 # Stepwise AIC
 model_3_adjusted_RR <- pool(with(
     imputed, 
-    glm(IsClade1 ~ Diabetes + Smoking.History. + CVD + Steroids.or.IMT + Anticoagulation. + CKD + Cancer, family = binomial(link=logit))
+    glm(IsClade1 ~ Diabetes + CKD + Cancer + CVD + Smoking.History. + Steroids.or.IMT + Anticoagulation., family = binomial(link=logit))
     ))
 
 # Using LASSO regression

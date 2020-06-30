@@ -360,6 +360,7 @@ print(paste(
 model_1 <- clade ~ Age + Gender + Race
 model_2 <- clade ~ Hospitalized.for.COVID + COPD + CVD + Cancer + Hx.of.DVT + Smoking.History. + Steroids.or.IMT + Anticoagulation.
 # model_2 <- clade ~ Diabetes + Smoking.History. + CVD + Steroids.or.IMT + Anticoagulation. + CKD + Cancer
+# model_2 <- clade ~ Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation.
 models <- c(model_1, model_2)
 
 patients <- unique(data$Accession)
@@ -481,6 +482,12 @@ model_2_adjusted_RR <- pool(with(
 model_3_adjusted_RR <- pool(with(
     imputed, 
     glm(clade ~ Diabetes + Smoking.History. + CVD + Steroids.or.IMT + Anticoagulation. + CKD + Cancer, family = binomial(link=logit))
+    ))
+
+# Using LASSO regression
+model_4_adjusted_RR <- pool(with(
+    imputed, 
+    glm(clade ~ Cancer + CVD + Steroids.or.IMT + Smoking.History. + Anticoagulation., family = binomial(link=logit))
     ))
 
 # Create a list of all the terms

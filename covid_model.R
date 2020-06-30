@@ -1,3 +1,4 @@
+
 library(dplyr)
 library(exact2x2)
 library(fmsb)
@@ -13,7 +14,7 @@ library(tidyverse)
 listwise_deletion <- TRUE
 
 # Load the CSV
-file_path <- "~/Downloads/COVIDCSV - main.csv"
+file_path <- "~/Downloads/clinical_level_enc-clade"
 data <- read.csv(
     file = file_path, 
     header = TRUE, 
@@ -44,7 +45,8 @@ data <- data %>%
         Baseline.Plaquenil = as.factor(Baseline.Plaquenil),
         ACEI.ARB = as.factor(ACEI.ARB),
         Smoking.History. = as.factor(Smoking.History.),
-        Anticoagulation. = as.factor(Anticoagulation.)
+        Anticoagulation. = as.factor(Anticoagulation.),
+        clade = as.factor(clade)
     )
 
 # Remove the 4 rows that have missing data here. Each of these rows has exactly
@@ -74,7 +76,6 @@ if (listwise_deletion) {
 
 # Relevel to reference groups
 data$Race <- relevel(data$Race, ref = "White")
-data$Smoking.History. <- relevel(data$Smoking.History., ref = "Never")
 
 # Set random seed
 random_seed_num <- 3249
@@ -111,10 +112,11 @@ predM <- init$predictorMatrix
 
 # For dichotomous variables, use logistic regression predictors, and for
 # categorical variables, use polynomial regression
-methods[c("Race", "Smoking.History.")] = "polyreg"
+methods[c("Race")] = "polyreg"
 methods[c("SNF", "Diabetes", "HTN", "COPD", "Asthma", "Hx.of.DVT", "CKD", 
     "Cancer", "Hx.of.MI", "CVD", "CHF", "Hypothyroid", "Steroids.or.IMT", 
-    "Baseline.Plaquenil", "ACEI.ARB", "Anticoagulation.")] = "logreg" 
+    "Baseline.Plaquenil", "ACEI.ARB", "Anticoagulation.", "clade", "Smoking.History.", 
+    "Hospitalized.for.COVID")] = "logreg" 
 
 # Set all variables to 0 to begin with
 predM <- ifelse(predM < 0, 1, 0)
@@ -124,7 +126,7 @@ predictor_vars <- c(
     "Hospitalized.for.COVID", "Age", "Gender", "Race", "SNF", "Diabetes", 
     "HTN", "COPD", "Asthma", "Hx.of.DVT", "CKD", "Cancer", "Hx.of.MI", 
     "CVD", "CHF", "Hypothyroid", "Steroids.or.IMT", "Baseline.Plaquenil", 
-    "ACEI.ARB", "Smoking.History.", "Anticoagulation."
+    "ACEI.ARB", "Smoking.History.", "Anticoagulation.", "clade"
 )
 
 # Pick which factors should be involved in imputation. This is a well-known
@@ -149,7 +151,7 @@ for (predictor_var in predictor_vars) {
 
 # We use multiple imputation using MICE. This is a set of multiple imputations for 
 # data that is MAR. For Race and for Smoking history, their probability of being 
-# missing is heavily correlated with hospitalized.for.COVID & HTN (Fisher test has 
+# missing is heavily correlated with Hospitalized.for.COVID & HTN (Fisher test has 
 # p = 0.007 and 0.01943, respectively). It is difficult to rule out MNAR, though
 # MICE still works for MNAR
 imputed <- mice(
@@ -167,6 +169,7 @@ imputed <- mice(
 # term is the default value, and the third is the reference group, or the
 # value that we will be comparing against
 test_matrices <- list(
+    c("Hospitalized.for.COVID")
     c("Gender", "M", "F"),
     c("SNF", "Yes", "No"),
     c("Race", "White", "White"),
@@ -185,9 +188,7 @@ test_matrices <- list(
     c("Hx.of.DVT", "Yes", "No"),
     c("Hypothyroid", "Yes", "No"),
     c("Hx.of.MI", "Yes", "No"),
-    c("Smoking.History.", "Former", "Never"),
-    c("Smoking.History.", "Never", "Never"),
-    c("Smoking.History.", "Active", "Never"),
+    c("Smoking.History.", "Yes", "No"),
     c("Steroids.or.IMT", "Yes", "No"),
     c("Baseline.Plaquenil", "Yes", "No"),
     c("ACEI.ARB", "Yes", "No"),

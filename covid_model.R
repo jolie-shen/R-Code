@@ -22,7 +22,7 @@ USE_IMPUTATIONS_FOR_UNIVARIATE <- TRUE
 TREAT_RACE_NAS_AS_OTHER <- TRUE
 
 # Load the CSV
-file_path <- "~/Downloads/clade.csv"
+file_path <- "~/Downloads/clade1.csv"
 data <- read.csv(
     file = file_path, 
     header = TRUE, 

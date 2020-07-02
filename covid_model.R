@@ -22,7 +22,7 @@ USE_IMPUTATIONS_FOR_UNIVARIATE <- TRUE
 TREAT_RACE_NAS_AS_OTHER <- TRUE
 
 # Load the CSV
-file_path <- "~/Downloads/clinical_level_enc-clade.csv"
+file_path <- "~/Downloads/clade.csv"
 data <- read.csv(
     file = file_path, 
     header = TRUE, 
@@ -70,6 +70,7 @@ data <- data[, !names(data) %in% c("clade")]
 
 # Relevel to reference groups
 data$Race <- relevel(data$Race, ref = "White")
+data$Smoking.History. <- relevel(data$Smoking.History., ref = "Never")
 
 # Set random seed
 random_seed_num <- 3249
@@ -106,10 +107,10 @@ predM <- init$predictorMatrix
 
 # For dichotomous variables, use logistic regression predictors, and for
 # categorical variables, use polynomial regression
-methods[c("Race")] = "polyreg"
+methods[c("Race", "Smoking.History.")] = "polyreg"
 methods[c("SNF", "Diabetes", "HTN", "COPD", "Asthma", "Hx.of.DVT", "CKD", 
     "Cancer", "Hx.of.MI", "CVD", "CHF", "Hypothyroid", "Steroids.or.IMT", 
-    "Baseline.Plaquenil", "ACEI.ARB", "Anticoagulation.", "IsClade1", "Smoking.History.", 
+    "Baseline.Plaquenil", "ACEI.ARB", "Anticoagulation.", "IsClade1", 
     "Hospitalized.for.COVID", "Death")] = "logreg" 
 
 # Set all variables to 0 to begin with
@@ -168,7 +169,7 @@ test_matrices <- list(
     c("SNF", "Yes", "No"),
     c("Race", "White", "White"),
     c("Race", "Asian", "White"),  # For example, we use "White" as a ref. group
-    c("Race", "Black or African American", "White"),
+    c("Race", "African American", "White"),
     c("Race", "Other", "White"),
     c("Diabetes", "Yes", "No"),
     c("HTN", "Yes", "No"),
@@ -181,7 +182,9 @@ test_matrices <- list(
     c("Hx.of.DVT", "Yes", "No"),
     c("Hypothyroid", "Yes", "No"),
     c("Hx.of.MI", "Yes", "No"),
-    c("Smoking.History.", "Yes", "No"),
+    c("Smoking.History.", "Former", "Never"),
+    c("Smoking.History.", "Never", "Never"),
+    c("Smoking.History.", "Active", "Never"),
     c("Steroids.or.IMT", "Yes", "No"),
     c("Baseline.Plaquenil", "Yes", "No"),
     c("ACEI.ARB", "Yes", "None"),

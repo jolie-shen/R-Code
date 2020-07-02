@@ -170,6 +170,7 @@ test_matrices <- list(
     c("Race", "White", "White"),
     c("Race", "Asian", "White"),  # For example, we use "White" as a ref. group
     c("Race", "African American", "White"),
+    c("Race", "Native Hawaiian or Pacific Islander", "White"),
     c("Race", "Other", "White"),
     c("Diabetes", "Yes", "No"),
     c("HTN", "Yes", "No"),

@@ -87,7 +87,7 @@ set.seed(random_seed_num)
 # is, "the number of imputations should be similar to the percentage of 
 # cases that are incomplete." Given the computational expense and the above
 # literature, plus the small amount of missing data, a value of 40 seems valid
-num_imputations <- 25
+num_imputations <- 20
 
 # Royston and White (2011) and Van Buuren et al. (1999) have all suggested
 # that more than 10 cycles are needed for the convergence of the sampling
@@ -98,7 +98,7 @@ num_imputations <- 25
 # we ran the well-known method described in "MICE in R" from the Journal of 
 # Statistical Software (2011), and found good convergence using just 10 
 # iterations. As a precaution, we've upped this to 25.
-iterations <- 40
+iterations <- 10
 
 # Simply just set up the methods and predictor matrices, as suggested in Heymans and Eekhout's "Applied Missing Data Analysis"
 init <- mice(data, maxit = 0) 
@@ -171,6 +171,7 @@ test_matrices <- list(
     c("Race", "Asian", "White"),  # For example, we use "White" as a ref. group
     c("Race", "African American", "White"),
     c("Race", "Native Hawaiian or Pacific Islander", "White"),
+    c("Race", "American Indian or Alaskan Native", "White"),
     c("Race", "Other", "White"),
     c("Diabetes", "Yes", "No"),
     c("HTN", "Yes", "No"),

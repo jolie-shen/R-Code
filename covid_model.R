@@ -187,7 +187,7 @@ test_matrices <- list(
     c("Smoking.History.", "Former", "Never"),
     c("Smoking.History.", "Never", "Never"),
     c("Smoking.History.", "Active", "Never"),
-    c("Smoking.History.", "Unknown", "Never"),
+    c("Smoking.History.", "Unclear", "Never"),
     c("Steroids.or.IMT", "Yes", "No"),
     c("Baseline.Plaquenil", "Yes", "No"),
     c("ACEI.ARB", "Yes", "No"),

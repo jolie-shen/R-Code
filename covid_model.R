@@ -172,8 +172,9 @@ test_matrices <- list(
     c("Race", "White", "White"),
     c("Race", "Asian", "White"),  # For example, we use "White" as a ref. group
     c("Race", "African American", "White"),
-    c("Race", "American Indian or Alaskan Native", "White"),
     c("Race", "Native Hawaiian or Pacific Islander", "White"),
+    c("Race", "American Indian or Alaskan Native", "White"),
+    c("Race", "Other", "White"),
     c("Diabetes", "Yes", "No"),
     c("HTN", "Yes", "No"),
     c("COPD", "Yes", "No"),
@@ -188,6 +189,7 @@ test_matrices <- list(
     c("Smoking.History.", "Former", "Never"),
     c("Smoking.History.", "Never", "Never"),
     c("Smoking.History.", "Active", "Never"),
+    c("Smoking.History.", "Unclear", "Never"),
     c("Steroids.or.IMT", "Yes", "No"),
     c("Baseline.Plaquenil", "Yes", "No"),
     c("ACEI.ARB", "Yes", "No"),

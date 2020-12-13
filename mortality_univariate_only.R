@@ -10,7 +10,7 @@ library(stats)
 library(tidyverse)
 
 # Boolean for deleting the 4 rows that are 90% "Unknown"
-listwise_deletion <- TRUE
+listwise_deletion <- FALSE
 
 # Load the CSV
 file_path <- "~/Downloads/COVIDCSV - main.csv"
@@ -76,6 +76,91 @@ if (listwise_deletion) {
 # Relevel to reference groups
 data$Race <- relevel(data$Race, ref = "White")
 data$Smoking.History. <- relevel(data$Smoking.History., ref = "Never")
+
+# Set random seed
+random_seed_num <- 3249
+set.seed(random_seed_num)
+
+# This number was originally set by Rubin, and 5 was believed to be enough. 
+# Since then, Bodner (2008), White et al. (2011) and Graham, Olchowski, 
+# and Gilreath (2007) have all suggested this can and should be higher. 
+# Graham et. al suggests that "researchers using MI should perform many 
+# more imputations than previously considered sufficient", and White 
+# suggested a lower bound to be 100 * the percent of cases and then to 
+# go slightly higher, which here is 28. Graham suggests 20 imputations 
+# for 10% to 30% of missing data. The main conclusion of the recent literature
+# is, "the number of imputations should be similar to the percentage of 
+# cases that are incomplete." Given the computational expense and the above
+# literature, plus the small amount of missing data, a value of 40 seems valid
+num_imputations <- 40
+
+# Royston and White (2011) and Van Buuren et al. (1999) have all suggested
+# that more than 10 cycles are needed for the convergence of the sampling
+# distribution of imputed values, but it has also been found that it can be
+# satisfactory with just 5-10 (Brand 1999; vanBuuren et al. 2006b). However,
+# they also note that while slower, added extra iterations is not a bad thing.
+# Van Buuren 2018 says 5-20 iterations is enough to reach convergence. However,
+# we ran the well-known method described in "MICE in R" from the Journal of 
+# Statistical Software (2011), and found good convergence using just 10 
+# iterations. As a precaution, we've upped this to 25.
+iterations <- 25
+
+# Simply just set up the methods and predictor matrices, as suggested in Heymans and Eekhout's "Applied Missing Data Analysis"
+init <- mice(data, maxit = 0) 
+methods <- init$method
+predM <- init$predictorMatrix
+
+# For dichotomous variables, use logistic regression predictors, and for
+# categorical variables, use polynomial regression
+methods[c("Race", "Smoking.History.")] = "polyreg"
+methods[c("SNF", "Diabetes", "HTN", "COPD", "Asthma", "Hx.of.DVT", "CKD", 
+    "Cancer", "Hx.of.MI", "CVD", "CHF", "Hypothyroid", "Steroids.or.IMT", 
+    "Baseline.Plaquenil", "ACEI.ARB", "Anticoagulation.")] = "logreg" 
+
+# Set all variables to 0 to begin with
+predM <- ifelse(predM < 0, 1, 0)
+
+# Variables which will be used for prediction
+predictor_vars <- c(
+    "Hospitalized.for.COVID", "Age", "Gender", "Race", "SNF", "Diabetes", 
+    "HTN", "COPD", "Asthma", "Hx.of.DVT", "CKD", "Cancer", "Hx.of.MI", 
+    "CVD", "CHF", "Hypothyroid", "Steroids.or.IMT", "Baseline.Plaquenil", 
+    "ACEI.ARB", "Smoking.History.", "Anticoagulation."
+)
+
+# Pick which factors should be involved in imputation. This is a well-known
+# issue in multiple imputation. Meng (1994), Rubin (1996), 
+# Taylor et al. (2002), and White, Royston, and Wood (2011) advocate 
+# including all variables associated with the probability of missingness, 
+# along with the variables contained in the dataset, and van Buuren (1999) 
+# found that, "Asa a general rule, using all available information yields 
+# multiple imputations that have minimal bias and maximal certainty. This 
+# principle implies that the number of predictors should be as large as 
+# possible."  Enders, Dietz, Montague, and Dixon (2006), Graham (2009), and 
+# Jolani, Van Buuren, and Frank (2011), the imputation model should be more
+#  general than the analysis model in order to capture more associations 
+# between the variables. Finally, it is summed up by Hardt (2012): "the 
+# imputation model should include all variables of the analysis, plus those 
+# highly correlated with responses or explanatory variables". For this reason,
+# we've included all variables
+for (predictor_var in predictor_vars) {
+    predM[predictor_var, predictor_vars] <- 1
+    predM[predictor_var, predictor_var] <- 0
+}
+
+# We use multiple imputation using MICE. This is a set of multiple imputations for 
+# data that is MAR. For Race and for Smoking history, their probability of being 
+# missing is heavily correlated with hospitalized.for.COVID & HTN (Fisher test has 
+# p = 0.007 and 0.01943, respectively). It is difficult to rule out MNAR, though
+# MICE still works for MNAR
+imputed <- mice(
+    data = data, 
+    method = methods, 
+    predictorMatrix = predM, 
+    m = num_imputations, 
+    maxit = iterations, 
+    seed = random_seed_num
+)
 
 ### Do univariate analysis
 # test_matrices is a list that combines each variable for which we want to do

@@ -1,0 +1,191 @@
+Accession,Age,Gender,Race,SNF,Hospitalized for COVID,Death,Diabetes,HTN,COPD,Asthma,Hx of DVT,CKD,Cancer,Hx of MI,CVD,CHF,Hypothyroid,Steroids or IMT,Baseline Plaquenil,ACEI/ARB,Smoking History?,Anticoagulation?
+M52229,43,F,White,No,No,No,No,Yes,No,No,No,No,No,No,No,No,Yes,No,No,No,Former,No
+WA-UW56,43,F,White,No,No,No,No,No,No,No,No,No,No,No,No,No,Yes,No,No,No,Former,No
+M51636,64,M,White,No,No,No,No,No,No,No,No,No,No,No,No,No,Yes,No,No,No,Former,No
+T56700,43,M,Unknown,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Former,No
+T57419,53,M,Asian,No,No,No,Yes,Yes,No,No,No,No,No,No,No,No,No,No,No,No,Active,No
+T57428,70,F,White,No,No,No,No,No,No,No,No,No,No,No,Yes,No,Yes,No,Yes,No,Never,No
+W41899,26,M,Asian,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Active,No
+W42440,59,M,White,No,No,No,No,No,No,Yes,No,No,No,No,No,No,No,Yes,No,No,Never,No
+H54925,56,F,White,No,No,No,No,Yes,No,No,No,No,Yes,No,No,No,No,Yes,No,No,Former,No
+H55288,78,F,White,No,No,No,No,No,No,No,No,No,Yes,No,No,No,No,No,No,No,Unknown,No
+H55317,19,F,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+H55474,63,F,African American,No,No,No,No,Yes,No,No,No,No,No,No,No,No,No,No,No,No,Former,No
+H55563,85,F,White,Yes,No,No,No,Yes,No,No,No,No,No,No,No,No,No,No,No,Yes,Former,No
+H55587,76,M,White,No,No,No,No,Yes,No,No,No,No,No,No,No,No,No,Yes,No,No,Never,No
+H55812,23,M,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+H57530,51,F,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+H59948,44,F,White,No,No,No,Yes,Yes,No,No,No,No,No,No,No,No,Yes,No,No,Yes,Never,No
+H61572,26,M,Asian,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+F73321,16,F,Unknown,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+F73992,51,F,Unknown,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+F74022,35,M,Asian,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Former,No
+F77344,67,M,Unknown,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Unknown,No
+F72473,61,F,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+F72767,42,M,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Yes,No,No,Active,No
+S92375,42,M,White,No,No,No,No,No,No,Yes,No,No,Yes,No,No,No,Yes,Yes,No,No,Never,No
+S93439,27,M,Unknown,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+S94154,86,F,Unknown,No,No,No,No,No,No,No,No,No,No,No,Yes,No,No,No,No,No,Never,Yes
+S94354,33,M,Unknown,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+S93564,72,M,White,No,No,No,No,No,No,No,Yes,No,No,No,Yes,No,No,No,No,No,Unknown,Yes
+S93585,90,F,White,No,No,No,Yes,Yes,No,No,No,No,No,Yes,Yes,No,No,No,No,Yes,Never,Yes
+S94720,31,F,Asian,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+X66401,40,F,Unknown,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+X68619,44,F,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+M58280,19,F,Unknown,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Unknown,No
+M58545,71,M,White,Yes,No,Yes,No,Yes,No,No,No,Yes,No,Yes,Yes,Yes,No,Yes,No,Yes,Unknown,Yes
+M58579,46,M,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Yes,No,No,Active,No
+M61033,38,F,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+M61098,47,M,White,No,No,No,No,No,No,Yes,No,No,No,No,No,No,No,No,No,No,Former,No
+M61305,70,M,White,No,No,No,No,Yes,No,Yes,No,No,No,No,No,No,No,No,No,Yes,Former,No
+M61814,66,F,Unknown,No,No,No,No,No,No,No,No,No,No,No,No,No,Yes,No,No,No,Unknown,No
+M61908,56,F,White,No,No,No,No,No,No,No,No,No,Yes,No,No,No,No,Yes,No,No,Never,No
+M62392,66,F,White,Yes,No,No,Yes,Yes,Yes,No,No,No,Yes,No,Yes,Yes,No,No,No,Yes,Never,Yes
+M62499,90,F,Unknown,No,No,No,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown
+M62712,59,F,White,No,No,No,No,Yes,No,No,No,No,Yes,No,No,No,No,No,No,Yes,Never,No
+M62959,35,F,American Indian or Alaskan Native,No,No,No,No,No,No,Yes,No,No,No,No,Yes,No,Yes,Yes,No,No,Never,No
+M62995,30,M,Unknown,No,No,No,No,No,No,Yes,No,No,Yes,No,No,No,No,No,No,No,Never,No
+M63014,27,M,Unknown,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+M63519,57,M,White,No,No,No,Yes,No,No,No,No,No,No,No,No,No,No,No,No,No,Active,No
+M63945,29,F,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Unknown,No
+T64252,27,F,White,No,No,No,No,No,No,No,No,No,Yes,No,No,No,No,No,No,No,Never,No
+T66142,37,M,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Unknown,No
+T67979,36,M,African American,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+T68874,95,F,Asian,Yes,No,No,No,Yes,No,No,Yes,No,No,No,No,No,No,Yes,No,No,Never,Yes
+T69071,90,M,White,No,No,No,No,Yes,Yes,No,No,No,Yes,No,Yes,No,No,No,No,Yes,Active,No
+T69376,63,M,Unknown,No,No,No,No,No,No,Yes,No,No,Yes,No,No,No,No,No,No,No,Never,No
+T69473,61,F,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+T66822,59,F,Asian,No,No,No,Yes,Yes,No,No,No,No,No,No,No,No,No,No,No,No,Unknown,No
+W50024,39,M,Unknown,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Unknown,No
+W52625,39,F,Asian,No,No,No,No,No,No,No,No,No,Yes,No,No,No,No,No,No,No,Never,No
+W52938,50,M,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+W55388,28,F,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+H65855,27,M,Asian,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+H70462,33,F,White,No,No,No,No,No,No,No,No,No,Yes,No,No,No,No,No,No,No,Unknown,No
+H71558,31,F,African American,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+F85970,51,M,African American,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+F86487,46,F,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Active,No
+F88087,51,M,Unknown,No,No,No,Yes,No,No,No,No,No,No,No,No,No,No,No,No,No,Active,No
+F88552,66,F,White,Yes,No,No,No,Yes,No,Yes,No,No,No,No,No,No,No,Yes,No,No,Never,No
+F88748,51,M,African American,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+F86777,51,M,Unknown,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Active,No
+F87037,41,F,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Former,No
+S14649,37,F,Unknown,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Unknown,No
+S14734,51,M,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Yes,No,No,Never,No
+S16182,39,M,Unknown,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+S16183,23,F,African American,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Unknown,No
+S17345,62,M,Asian,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Former,No
+S17775,44,M,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Yes,No,No,Former,No
+M74187,85,M,Asian,No,No,No,Yes,Yes,No,No,No,No,No,No,Yes,No,No,No,No,Yes,Never,No
+X72951,40,M,White,No,No,No,No,No,No,Yes,No,No,No,No,No,No,No,No,No,No,Former,No
+X73626,31,M,Unknown,No,No,No,Yes,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+X74410,78,F,African American,No,No,No,Yes,Yes,No,No,No,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,Never,Yes
+F85643,35,M,Unknown,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Unknown,No
+M67814,54,M,White,No,No,No,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown
+M69292,33,F,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+M70163,51,F,White,No,No,No,No,No,No,No,No,No,Yes,No,No,No,No,Yes,No,No,Unknown,No
+M71534,22,F,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+M72979,40,F,White,No,No,No,No,No,Yes,No,No,No,No,No,No,No,No,No,No,No,Never,No
+T76622,55,F,African American,No,No,No,No,Yes,No,Yes,No,No,Yes,No,No,No,No,No,No,Yes,Never,No
+T76855,31,M,White,No,No,No,No,No,No,Yes,No,No,No,No,No,No,No,No,No,No,Former,No
+T78491,69,M,White,No,No,No,No,Yes,No,No,No,No,No,No,No,No,No,No,No,Yes,Former,No
+T78497,22,F,Unknown,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+T78607,42,F,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Former,No
+T78714,41,M,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Former,No
+T81479,68,F,White,No,No,No,Yes,Yes,No,No,No,No,Yes,No,Yes,No,No,No,No,Yes,Never,No
+M73728,41,M,White,No,No,No,No,No,No,No,No,No,Yes,No,No,No,No,No,No,No,Never,No
+T80666,80,M,White,Yes,No,No,Yes,Yes,Yes,No,No,No,No,No,Yes,No,No,Yes,No,No,Former,No
+H81066,85,M,White,Yes,No,No,Yes,Yes,No,No,No,No,No,No,Yes,No,Yes,No,No,Yes,Former,No
+T80057,31,F,Asian,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+T80184,63,F,White,No,No,No,No,Yes,No,No,No,No,No,No,No,No,Yes,Yes,Yes,Yes,Never,No
+W60213,77,F,White,No,No,No,No,No,No,No,No,No,No,No,No,No,Yes,No,No,No,Never,No
+W60807,34,F,White,No,No,No,No,No,No,Yes,No,No,No,No,No,No,No,No,No,No,Former,No
+W60973,48,M,African American,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Former,No
+W61379,59,M,African American,No,No,No,No,Yes,No,Yes,No,No,No,No,Yes,No,No,No,No,No,Never,No
+W61410,43,F,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+W62401,26,F,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+W62923,63,F,Native Hawaiian or Pacific Islander,No,No,No,Yes,Yes,No,No,No,Yes,No,No,No,No,No,No,No,Yes,Never,No
+W63494,72,M,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+W63831,32,M,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Active,No
+W63932,23,F,Unknown,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+H79276,77,F,Unknown,Yes,No,No,Yes,Yes,No,No,No,No,No,No,No,No,No,No,No,Yes,Unknown,No
+H79351,90,F,Unknown,Yes,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Unknown,No
+H80088,37,F,African American,No,No,No,Yes,Yes,No,Yes,No,No,No,No,No,No,No,No,No,Yes,Never,No
+H81049,89,F,Asian,Yes,No,No,Yes,Yes,No,No,No,No,No,No,No,No,No,No,No,Yes,Never,No
+F10987,77,M,White,Yes,No,No,No,Yes,No,No,No,No,Yes,No,No,No,No,No,No,No,Never,Yes
+F12031,69,M,White,Yes,No,No,No,Yes,No,No,No,Yes,Yes,No,No,No,No,No,No,No,Never,No
+F90577,60,M,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Former,No
+S22505,29,M,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+S22838,29,M,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Unknown,No
+X77869,16,M,African American,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+X79316,57,M,White,Yes,No,No,Yes,Yes,No,No,No,No,No,No,No,No,No,No,No,Yes,Never,No
+X79831,63,F,Asian,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+X80287,83,F,White,Yes,No,No,Yes,Yes,No,Yes,No,No,Yes,No,No,No,Yes,No,No,Yes,Never,No
+X81153,36,F,Unknown,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Unknown,No
+T85880,31,M,Unknown,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+T87888,44,F,White,No,No,No,No,No,No,No,No,No,Yes,No,No,No,No,Yes,No,No,Never,No
+T89177,36,M,Unknown,No,No,No,No,No,No,Yes,No,No,No,No,No,No,No,No,No,No,Never,No
+T89437,56,F,Asian,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+T89578,74,F,Unknown,No,No,No,Yes,Yes,No,No,No,Yes,No,No,Yes,No,No,No,No,No,Never,No
+T90317,66,M,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Active,No
+T90349,54,F,African American,No,No,No,Yes,Yes,No,No,No,No,No,No,No,No,Yes,No,No,No,Never,No
+T90370,58,M,Unknown,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+T90457,27,F,Native Hawaiian or Pacific Islander,No,No,No,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown
+T90510,53,M,African American,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Unknown,No
+T90528,63,M,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Active,No
+T90617,62,F,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Active,No
+T92425,30,M,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+T92841,61,F,White,No,No,No,Yes,Yes,No,No,No,No,No,No,No,No,Yes,No,No,Yes,Former,No
+T93126,36,M,Unknown,No,No,No,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown,Unknown
+H90396,85,F,Unknown,Yes,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Unknown,No
+T88604,93,F,White,No,No,No,No,No,No,No,No,No,No,No,Yes,No,No,No,No,No,Former,No
+W70075,62,M,American Indian or Alaskan Native,No,No,No,No,Yes,No,No,No,No,No,No,No,No,No,No,No,Yes,Active,No
+W71077,51,F,African American,No,No,No,No,No,No,No,No,No,No,No,No,No,Yes,No,No,No,Former,No
+W73912,53,F,White,No,No,No,No,No,No,No,No,No,No,No,No,No,Yes,No,No,No,Never,No
+W75256,80,M,White,No,No,No,No,Yes,Yes,No,Yes,No,No,No,Yes,Yes,No,No,No,No,Former,Yes
+W75778,37,F,Unknown,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+W75912,67,M,African American,No,No,No,No,Yes,No,Yes,No,No,No,No,No,No,No,No,No,Yes,Never,No
+H87303,44,M,African American,No,No,No,No,No,No,Yes,No,No,No,No,No,No,No,No,No,No,Never,No
+H87641,34,F,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Unknown,No
+H87720,32,M,Unknown,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Former,No
+H88791,39,M,White,No,No,No,No,Yes,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+H89657,31,M,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Unknown,No
+F18055,33,M,White,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Unknown,No
+T13406,68,F,White,No,No,No,Yes,Yes,No,No,No,No,No,No,No,No,No,No,No,Yes,Never,No
+T17290,49,M,African American,No,No,No,No,Yes,No,No,No,No,No,No,No,No,Yes,No,No,Yes,Former,No
+T18479,32,M,African American,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Unknown,No
+W31934,86,M,White,No,Yes,Yes,No,No,Yes,Yes,No,Yes,Yes,No,No,No,No,Yes,No,No,Never,No
+H48685,63,F,White,No,Yes,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+M43826,43,F,Asian,No,Yes,No,Yes,No,No,No,No,No,No,No,Yes,Yes,No,Yes,No,Yes,Never,No
+T58788,43,F,White,No,Yes,Yes,No,No,No,No,Yes,Yes,Yes,No,Yes,No,No,Yes,No,No,Never,Yes
+W38736,53,M,White,No,Yes,No,No,No,No,No,Yes,No,No,No,Yes,No,No,No,No,No,Never,Yes
+H57170,65,F,White,No,Yes,No,No,Yes,No,No,No,No,Yes,No,No,No,Yes,Yes,No,No,Never,No
+H60867,73,F,White,No,Yes,No,No,No,No,Yes,No,No,No,No,No,No,No,Yes,No,No,Former,No
+F73573,75,M,White,No,Yes,No,Yes,Yes,No,Yes,No,Yes,No,No,No,No,No,Yes,No,No,Former,Yes
+X67273,87,M,White,No,Yes,Yes,No,Yes,No,No,No,No,Yes,No,Yes,Yes,No,Yes,No,No,Former,No
+M61220,59,M,White,Yes,Yes,Yes,No,No,Yes,No,No,No,No,No,No,No,No,No,No,No,Former,No
+M62653,78,M,Unknown,No,Yes,Yes,Yes,Yes,No,No,No,Yes,Yes,No,Yes,No,No,No,No,Yes,Former,Yes
+T63988,83,F,Asian,Yes,Yes,Yes,No,Yes,No,Yes,No,No,No,No,Yes,No,No,No,No,No,Never,No
+T69831,53,M,White,Yes,Yes,No,No,No,No,No,Yes,No,No,No,Yes,No,No,No,No,No,Never,Yes
+W50354,64,F,White,No,Yes,No,No,Yes,No,No,No,Yes,Yes,No,No,No,Yes,Yes,No,Yes,Never,No
+W55296,65,F,White,No,Yes,Yes,Yes,No,No,Yes,No,No,Yes,No,No,No,No,Yes,No,No,Never,No
+H64383,56,F,Asian,No,Yes,No,No,Yes,No,No,No,No,No,No,No,No,Yes,No,No,Yes,Never,No
+S17096,79,F,White,No,Yes,No,No,Yes,No,No,No,No,No,No,Yes,No,No,No,No,Yes,Never,No
+X74967,95,F,White,Yes,Yes,Yes,No,Yes,No,No,Yes,No,Yes,Yes,Yes,No,No,No,No,No,Former,No
+X75162,69,M,White,Yes,Yes,Yes,No,Yes,Yes,No,No,Yes,No,No,Yes,Yes,No,No,No,No,Active,Yes
+M73894,82,M,Asian,No,Yes,No,No,Yes,No,No,No,Yes,No,No,Yes,Yes,No,No,No,No,Never,Yes
+M74528,89,M,Asian,Yes,Yes,No,No,Yes,Yes,No,No,No,No,Yes,Yes,Yes,Yes,No,No,Yes,Never,Yes
+X73961,32,F,White,No,Yes,No,No,No,No,No,No,No,Yes,No,No,No,No,No,No,No,Former,No
+T76629,62,M,African American,Yes,Yes,No,Yes,Yes,No,No,Yes,No,Yes,No,No,No,No,Yes,No,Yes,Active,No
+T77036,83,M,Asian,Yes,Yes,No,No,Yes,No,No,No,Yes,No,No,Yes,Yes,No,No,No,No,Former,Yes
+T81485,60,M,African American,No,Yes,No,No,Yes,No,No,No,Yes,Yes,No,No,No,No,No,No,Yes,Active,No
+W60367,87,M,White,Yes,Yes,Yes,No,No,No,No,No,No,No,No,No,No,No,Unknown,No,Unknown,Unknown,Unknown
+W63124,53,F,White,No,Yes,No,Yes,Yes,No,No,No,No,No,No,No,No,No,Yes,No,Yes,Never,No
+H81039,48,M,White,Yes,Yes,No,Yes,Yes,No,No,No,No,No,No,No,No,No,No,No,No,Former,Yes
+H81079,48,M,White,Yes,Yes,No,No,Yes,No,No,No,No,No,No,Yes,No,No,No,No,Yes,Never,No
+F10885,74,M,White,Yes,Yes,Yes,No,No,No,No,No,No,No,No,Yes,No,Yes,No,No,No,Former,No
+F92487,60,F,White,No,Yes,No,No,Yes,No,No,No,No,Yes,No,No,No,No,No,No,No,Never,No
+X78255,52,M,African American,No,Yes,No,No,No,No,No,No,No,No,No,No,No,No,No,No,No,Never,No
+T87076,61,M,American Indian or Alaskan Native,No,Yes,Yes,Yes,Yes,No,No,No,No,Yes,No,No,No,No,No,No,Yes,Active,No
+X83618,85,F,White,Yes,Yes,Yes,No,Yes,No,No,No,Yes,No,No,Yes,Yes,No,No,No,No,Former,No
+W77468,62,M,White,No,Yes,No,No,No,No,No,No,No,No,Yes,Yes,Yes,No,No,No,Yes,Active,Yes

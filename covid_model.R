@@ -10,7 +10,7 @@ library(stats)
 library(tidyverse)
 
 # Boolean for deleting the 4 rows that are 90% "Unknown"
-listwise_deletion <- TRUE
+listwise_deletion <- FALSE
 
 # Load the CSV
 file_path <- "~/Downloads/COVIDCSV - main.csv"
